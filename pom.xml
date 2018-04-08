@@ -13,9 +13,9 @@
   <packaging>pom</packaging>
 
   <properties>
-    <playn.version>2.0.2</playn.version>
+    <playn.version>2.1-SNAPSHOT</playn.version>
     <tripleplay.version>2.0.2a</tripleplay.version>
-    <playn-util.version>master-SNAPSHOT</playn-util.version>
+    <playn-util.version>0.2-SNAPSHOT</playn-util.version>
     <guava.version>19.0</guava.version>
   </properties>
 
