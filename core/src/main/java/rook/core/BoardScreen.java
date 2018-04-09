@@ -46,6 +46,11 @@ public class BoardScreen extends Screen {
   }
 
   public static class Board {
+    interface Depths {
+      float FIELDS = 0f;
+      float PIECES = 1f;
+    }
+
     private final BoardScreen screen;
     private final Platform plat;
     public final GroupLayer layer = new GroupLayer();
@@ -63,7 +68,11 @@ public class BoardScreen extends Screen {
       for (int y = 0; y < state.dim.height(); ++y) {
         for (int x = 0; x < state.dim.width(); ++x) {
           int color = (x + y) % 2 == 0 ? Colors.DARK_GRAY : Colors.GRAY;
-          Layer fieldLayer = Layers.solid(color, 1f, 1f).setOrigin(Layer.Origin.CENTER).setName("field_" + x + "_" + y);
+          Layer fieldLayer = Layers.solid(color, 1f, 1f)
+                  .setName("field_" + x + "_" + y)
+                  .setOrigin(Layer.Origin.CENTER)
+                  .setDepth(Depths.FIELDS);
+
           layer.addAt(fieldLayer, x + .5f, y + .5f);
           fieldLayersBuilder.add(fieldLayer);
         }
@@ -92,8 +101,9 @@ public class BoardScreen extends Screen {
 
     private Layer createPieceLayer(Image image) {
       return new ImageLayer(image)
+              .setSize(1f, 1f)
               .setOrigin(Layer.Origin.CENTER)
-              .setScale(1f / image.width());
+              .setDepth(Depths.PIECES);
     }
   }
 }
