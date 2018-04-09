@@ -6,8 +6,10 @@ import com.google.common.collect.ImmutableMap;
 import de.cdietze.playn_util.PointUtils;
 import de.cdietze.playn_util.ScaledElement;
 import de.cdietze.playn_util.Screen;
+import playn.core.Image;
 import playn.core.Platform;
 import playn.scene.GroupLayer;
+import playn.scene.ImageLayer;
 import playn.scene.Layer;
 import playn.scene.Pointer;
 import tripleplay.ui.Background;
@@ -22,10 +24,12 @@ import java.util.List;
 
 public class BoardScreen extends Screen {
 
+  public final MainGame game;
   private final BoardState state;
 
   public BoardScreen(MainGame game, BoardState state) {
     super(game);
+    this.game = game;
     this.state = state;
   }
 
@@ -42,12 +46,14 @@ public class BoardScreen extends Screen {
   }
 
   public static class Board {
+    private final BoardScreen screen;
+    private final Platform plat;
     public final GroupLayer layer = new GroupLayer();
     private final List<Layer> fieldLayers;
-    private final Platform plat;
 
-    public Board(final BoardScreen boardScreen, final BoardState state) {
-      this.plat = boardScreen.plat;
+    public Board(final BoardScreen screen, final BoardState state) {
+      this.screen = screen;
+      this.plat = screen.plat;
       layer.setName("board");
       layer.setSize(state.dim.width(), state.dim.height());
       layer.setOrigin(Layer.Origin.CENTER);
@@ -71,7 +77,7 @@ public class BoardScreen extends Screen {
           plat.log().debug("onStart", "iact", iact, "screen", new pythagoras.f.Point(iact), "local", iact.local, "pos", pos);
           if (pos < 0) return;
           Layer fieldLayer = fieldLayers.get(pos);
-          boardScreen.iface.anim.tweenAlpha(fieldLayer).from(.5f).to(1f).in(500);
+          screen.iface.anim.tweenAlpha(fieldLayer).from(.5f).to(1f).in(500);
         }
 
         private int hitPos(Pointer.Interaction iact) {
@@ -80,6 +86,14 @@ public class BoardScreen extends Screen {
           return state.rect.contains(x, y) ? PointUtils.toIndex(state.dim, x, y) : -1;
         }
       });
+
+      layer.addAt(createPieceLayer(screen.game.images.whiteBishop), 1.5f, 1.5f);
+    }
+
+    private Layer createPieceLayer(Image image) {
+      return new ImageLayer(image)
+              .setOrigin(Layer.Origin.CENTER)
+              .setScale(1f / image.width());
     }
   }
 }
