@@ -15,6 +15,7 @@ public class MainGame extends SceneGame {
     protected Transition defaultPushTransition() {
       return new SlideTransition(this).left();
     }
+
     @Override
     protected Transition defaultPopTransition() {
       return new SlideTransition(this).right();
@@ -34,6 +35,7 @@ public class MainGame extends SceneGame {
     // Register Pointer so we can handle any pointer input (clicks, mouse/touch events etc.)
     new Pointer(plat, rootLayer, true);
 
-    screens.push(new DemoScreen(this));
+    BoardState boardState = new BoardState();
+    screens.push(new BoardScreen(this, boardState));
   }
 }
