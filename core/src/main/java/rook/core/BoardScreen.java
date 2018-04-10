@@ -2,7 +2,6 @@ package rook.core;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import de.cdietze.playn_util.PointUtils;
 import de.cdietze.playn_util.ScaledElement;
 import de.cdietze.playn_util.Screen;
@@ -12,14 +11,16 @@ import playn.scene.GroupLayer;
 import playn.scene.ImageLayer;
 import playn.scene.Layer;
 import playn.scene.Pointer;
+import react.RList;
+import react.Slot;
 import tripleplay.ui.Background;
-import tripleplay.ui.Field;
 import tripleplay.ui.Root;
 import tripleplay.ui.Style;
 import tripleplay.ui.layout.BorderLayout;
 import tripleplay.util.Colors;
 import tripleplay.util.Layers;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class BoardScreen extends Screen {
@@ -55,6 +56,7 @@ public class BoardScreen extends Screen {
     private final Platform plat;
     public final GroupLayer layer = new GroupLayer();
     private final List<Layer> fieldLayers;
+    private final List<Layer> pieceLayers = new ArrayList<>();
 
     public Board(final BoardScreen screen, final BoardState state) {
       this.screen = screen;
@@ -64,7 +66,6 @@ public class BoardScreen extends Screen {
       layer.setOrigin(Layer.Origin.CENTER);
       layer.addAt(Layers.solid(0xff222222, state.dim.width(), state.dim.height()).setOrigin(Layer.Origin.CENTER).setDepth(-10), layer.width() / 2, layer.height() / 2);
       ImmutableList.Builder<Layer> fieldLayersBuilder = ImmutableList.builder();
-      ImmutableMap.Builder<Layer, Field> layerToFieldMapBuilder = ImmutableMap.builder();
       for (int y = 0; y < state.dim.height(); ++y) {
         for (int x = 0; x < state.dim.width(); ++x) {
           int color = (x + y) % 2 == 0 ? Colors.DARK_GRAY : Colors.GRAY;
@@ -78,6 +79,22 @@ public class BoardScreen extends Screen {
         }
       }
       this.fieldLayers = fieldLayersBuilder.build();
+      state.pieces.connectNotify(new RList.Listener<Piece>() {
+        @Override
+        public void onAdd(Piece piece) {
+          final Layer pieceLayer = createPieceLayer(screen.game.images.pieceImage(piece.type));
+          pieceLayers.add(pieceLayer);
+          layer.add(pieceLayer);
+          piece.pos.connectNotify(new Slot<Integer>() {
+            @Override
+            public void onEmit(Integer pos) {
+              int x = PointUtils.toX(state.dim, pos);
+              int y = PointUtils.toY(state.dim, pos);
+              pieceLayer.setTranslation(x + .5f, y + .5f);
+            }
+          });
+        }
+      });
       layer.events().connect(new Pointer.Listener() {
         @Override
         public void onStart(Pointer.Interaction iact) {
@@ -96,7 +113,7 @@ public class BoardScreen extends Screen {
         }
       });
 
-      layer.addAt(createPieceLayer(screen.game.images.whiteBishop), 1.5f, 1.5f);
+      // layer.addAt(createPieceLayer(screen.game.images.whiteBishop), 1.5f, 1.5f);
     }
 
     private Layer createPieceLayer(Image image) {

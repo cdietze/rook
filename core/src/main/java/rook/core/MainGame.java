@@ -31,6 +31,8 @@ public class MainGame extends SceneGame {
     new Pointer(plat, rootLayer, true);
 
     BoardState boardState = new BoardState();
+    boardState.pieces.add(new Piece(Piece.Type.BISHOP, 4));
+    boardState.pieces.add(new Piece(Piece.Type.KING, 9));
     screens.push(new BoardScreen(this, boardState));
   }
 }
