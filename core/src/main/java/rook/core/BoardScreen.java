@@ -126,8 +126,6 @@ public class BoardScreen extends Screen {
           return state.rect.contains(x, y) ? PointUtils.toIndex(state.dim, x, y) : -1;
         }
       });
-
-      // layer.addAt(createPieceLayer(screen.game.images.whiteBishop), 1.5f, 1.5f);
     }
 
     private Layer createPieceLayer(Image image) {
