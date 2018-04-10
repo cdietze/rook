@@ -95,6 +95,10 @@ public class BoardScreen extends Screen {
           });
         }
       });
+      state.selectedPieceIndex.connectNotify((value, oldValue) -> {
+        if (oldValue != null && oldValue >= 0) pieceLayers.get(oldValue).setTint(Colors.WHITE);
+        if (value >= 0) pieceLayers.get(value).setTint(Colors.YELLOW);
+      });
       layer.events().connect(new Pointer.Listener() {
         @Override
         public void onStart(Pointer.Interaction iact) {
@@ -104,6 +108,8 @@ public class BoardScreen extends Screen {
           if (pos < 0) return;
           Layer fieldLayer = fieldLayers.get(pos);
           screen.iface.anim.tweenAlpha(fieldLayer).from(.5f).to(1f).in(500);
+
+          state.selectedPieceIndex.update(state.pieceIndexAtPos(pos));
         }
 
         private int hitPos(Pointer.Interaction iact) {
