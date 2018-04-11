@@ -39,6 +39,20 @@ public class BoardState {
     return Iterables.indexOf(pieces, piece -> piece.pos.get() == pos);
   }
 
+  public void clickOnPos(int pos) {
+    int clickedPieceIndex = pieceIndexAtPos(pos);
+    int selectedPieceIndexValue = selectedPieceIndex.get();
+    if (clickedPieceIndex == selectedPieceIndexValue) {
+      selectedPieceIndex.update(-1);
+    } else if (clickedPieceIndex >= 0) {
+      selectedPieceIndex.update(clickedPieceIndex);
+    } else if (selectedPieceIndexValue >= 0) {
+      tryMoveSelectedPiece(pos);
+    } else {
+      selectedPieceIndex.update(-1);
+    }
+  }
+
   public boolean tryMoveSelectedPiece(int dest) {
     Optional<Piece> optionalPiece = selectedPiece.get();
     if (!optionalPiece.isPresent()) return false;
