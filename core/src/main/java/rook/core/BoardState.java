@@ -7,6 +7,10 @@ import pythagoras.i.IRectangle;
 import pythagoras.i.Rectangle;
 import react.IntValue;
 import react.RList;
+import react.ValueView;
+
+import java.util.BitSet;
+import java.util.Optional;
 
 public class BoardState {
   public final IDimension dim = new Dimension(8, 8);
@@ -19,8 +23,33 @@ public class BoardState {
    */
   public final IntValue selectedPieceIndex = new IntValue(-1);
 
+  public final ValueView<Optional<Piece>> selectedPiece = selectedPieceIndex.map(pieceIndex -> {
+    if (pieceIndex < 0) return Optional.empty();
+    return Optional.of(pieces.get(pieceIndex));
+  });
+
+  public final ValueView<BitSet> possibleMoves = selectedPiece.map(optionalPiece -> {
+    if (!optionalPiece.isPresent()) return new BitSet();
+    Piece piece = optionalPiece.get();
+    return PieceMoves.moves(dim, piece.type, piece.pos.get(), new BitSet());
+  });
+
   public int pieceIndexAtPos(final int pos) {
     pieces.stream().filter(piece -> piece.pos.get() == pos).findFirst();
     return Iterables.indexOf(pieces, piece -> piece.pos.get() == pos);
+  }
+
+  public boolean tryMoveSelectedPiece(int dest) {
+    Optional<Piece> optionalPiece = selectedPiece.get();
+    if (!optionalPiece.isPresent()) return false;
+    Piece piece = optionalPiece.get();
+    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), new BitSet());
+    if (moves.get(dest)) {
+      piece.pos.update(dest);
+      selectedPieceIndex.update(-1);
+      return true;
+    } else {
+      return false;
+    }
   }
 }

@@ -111,10 +111,12 @@ public class BoardScreen extends Screen {
 
           int clickedPieceIndex = state.pieceIndexAtPos(pos);
           int selectedPieceIndex = state.selectedPieceIndex.get();
-          if (clickedPieceIndex >= 0) {
+          if (clickedPieceIndex == selectedPieceIndex) {
+            state.selectedPieceIndex.update(-1);
+          } else if (clickedPieceIndex >= 0) {
             state.selectedPieceIndex.update(clickedPieceIndex);
           } else if (selectedPieceIndex >= 0) {
-            state.pieces.get(selectedPieceIndex).pos.update(pos);
+            state.tryMoveSelectedPiece(pos);
           } else {
             state.selectedPieceIndex.update(-1);
           }
