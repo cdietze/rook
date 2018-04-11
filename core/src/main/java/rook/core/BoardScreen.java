@@ -48,14 +48,14 @@ public class BoardScreen extends Screen {
 
   public static class Board {
     interface Depths {
-      float FIELDS = 0f;
+      float SQUARES = 0f;
       float PIECES = 1f;
     }
 
     private final BoardScreen screen;
     private final Platform plat;
     public final GroupLayer layer = new GroupLayer();
-    private final List<Layer> fieldLayers;
+    private final List<Layer> squareLayers;
     private final List<Layer> pieceLayers = new ArrayList<>();
 
     public Board(final BoardScreen screen, final BoardState state) {
@@ -65,20 +65,20 @@ public class BoardScreen extends Screen {
       layer.setSize(state.dim.width(), state.dim.height());
       layer.setOrigin(Layer.Origin.CENTER);
       layer.addAt(Layers.solid(0xff222222, state.dim.width(), state.dim.height()).setOrigin(Layer.Origin.CENTER).setDepth(-10), layer.width() / 2, layer.height() / 2);
-      ImmutableList.Builder<Layer> fieldLayersBuilder = ImmutableList.builder();
+      ImmutableList.Builder<Layer> squareLayersBuilder = ImmutableList.builder();
       for (int y = 0; y < state.dim.height(); ++y) {
         for (int x = 0; x < state.dim.width(); ++x) {
           int color = (x + y) % 2 == 0 ? Colors.DARK_GRAY : Colors.GRAY;
-          Layer fieldLayer = Layers.solid(color, 1f, 1f)
-                  .setName("field_" + x + "_" + y)
+          Layer squareLayer = Layers.solid(color, 1f, 1f)
+                  .setName("square_" + x + "_" + y)
                   .setOrigin(Layer.Origin.CENTER)
-                  .setDepth(Depths.FIELDS);
+                  .setDepth(Depths.SQUARES);
 
-          layer.addAt(fieldLayer, x + .5f, y + .5f);
-          fieldLayersBuilder.add(fieldLayer);
+          layer.addAt(squareLayer, x + .5f, y + .5f);
+          squareLayersBuilder.add(squareLayer);
         }
       }
-      this.fieldLayers = fieldLayersBuilder.build();
+      this.squareLayers = squareLayersBuilder.build();
       state.pieces.connectNotify(new RList.Listener<Piece>() {
         @Override
         public void onAdd(Piece piece) {
@@ -106,8 +106,8 @@ public class BoardScreen extends Screen {
           int pos = hitPos(iact);
           plat.log().debug("onStart", "iact", iact, "screen", new pythagoras.f.Point(iact), "local", iact.local, "pos", pos);
           if (pos < 0) return;
-          Layer fieldLayer = fieldLayers.get(pos);
-          screen.iface.anim.tweenAlpha(fieldLayer).from(.5f).to(1f).in(500);
+          Layer squareLayer = squareLayers.get(pos);
+          screen.iface.anim.tweenAlpha(squareLayer).from(.5f).to(1f).in(500);
           state.clickOnPos(pos);
         }
 
