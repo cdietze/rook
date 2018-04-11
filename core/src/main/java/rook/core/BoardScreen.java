@@ -108,7 +108,7 @@ public class BoardScreen extends Screen {
           if (pos < 0) return;
           Layer squareLayer = squareLayers.get(pos);
           screen.iface.anim.tweenAlpha(squareLayer).from(.5f).to(1f).in(500);
-          state.clickOnPos(pos);
+          state.clickOnSquare(pos);
         }
 
         private int hitPos(Pointer.Interaction iact) {

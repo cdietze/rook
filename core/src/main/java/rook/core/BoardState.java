@@ -28,18 +28,17 @@ public class BoardState {
     return Optional.of(pieces.get(pieceIndex));
   });
 
-  public final ValueView<BitSet> possibleMoves = selectedPiece.map(optionalPiece -> {
-    if (!optionalPiece.isPresent()) return new BitSet();
-    Piece piece = optionalPiece.get();
-    return PieceMoves.moves(dim, piece.type, piece.pos.get(), new BitSet());
-  });
+  public BitSet occupiedSquares(BitSet result) {
+    pieces.forEach(p -> result.set(p.pos.get()));
+    return result;
+  }
 
   public int pieceIndexAtPos(final int pos) {
     pieces.stream().filter(piece -> piece.pos.get() == pos).findFirst();
     return Iterables.indexOf(pieces, piece -> piece.pos.get() == pos);
   }
 
-  public void clickOnPos(int pos) {
+  public void clickOnSquare(int pos) {
     int clickedPieceIndex = pieceIndexAtPos(pos);
     int selectedPieceIndexValue = selectedPieceIndex.get();
     if (clickedPieceIndex == selectedPieceIndexValue) {
@@ -57,7 +56,7 @@ public class BoardState {
     Optional<Piece> optionalPiece = selectedPiece.get();
     if (!optionalPiece.isPresent()) return false;
     Piece piece = optionalPiece.get();
-    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), new BitSet());
+    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), occupiedSquares(new BitSet()), new BitSet());
     if (moves.get(dest)) {
       piece.pos.update(dest);
       selectedPieceIndex.update(-1);

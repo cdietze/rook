@@ -5,56 +5,62 @@ import pythagoras.i.IDimension;
 
 import java.util.BitSet;
 
-import static de.cdietze.playn_util.PointUtils.toX;
-import static de.cdietze.playn_util.PointUtils.toY;
+import static de.cdietze.playn_util.PointUtils.*;
 
 public class PieceMoves {
 
-  public static BitSet moves(IDimension dim, Piece.Type type, int pos, BitSet result) {
+  public static BitSet moves(IDimension dim, Piece.Type type, int pos, BitSet occupied, BitSet result) {
     switch (type) {
       case BISHOP:
-        return bishopMoves(dim, pos, result);
+        return bishopMoves(dim, pos, occupied, result);
       case KING:
-        return kingMoves(dim, pos, result);
+        return kingMoves(dim, pos, occupied, result);
       case ROOK:
-        return rookMoves(dim, pos, result);
+        return rookMoves(dim, pos, occupied, result);
     }
     throw new RuntimeException("unknown piece type: " + type);
   }
 
-  public static BitSet kingMoves(IDimension dim, int pos, BitSet result) {
-    return PointUtils.borderingNeighbors(dim, pos, result);
-  }
-
-  public static BitSet bishopMoves(IDimension dim, int pos, BitSet result) {
-    int x = toX(dim, pos);
-    int y = toY(dim, pos);
-    int w = dim.width();
-    int h = dim.height();
-    // up-left
-    for (int i = 1; y - i >= 0 && x - i >= 0; i++) { result.set(pos - i - (i * w)); }
-    // up-right
-    for (int i = 1; y - i >= 0 && x + i < w; i++) { result.set(pos + i - (i * w)); }
-    // down-right
-    for (int i = 1; y + i < h && x + i < w; i++) { result.set(pos + i + (i * w)); }
-    // down-left
-    for (int i = 1; y + i < h && x - i >= 0; i++) { result.set(pos - i + (i * w)); }
+  public static BitSet kingMoves(IDimension dim, int pos, BitSet occupied, BitSet result) {
+    PointUtils.borderingNeighbors(dim, pos, result);
+    result.andNot(occupied);
     return result;
   }
 
-  public static BitSet rookMoves(IDimension dim, int pos, BitSet result) {
+  public static BitSet bishopMoves(IDimension dim, int pos, BitSet occupied, BitSet result) {
     int x = toX(dim, pos);
     int y = toY(dim, pos);
-    int w = dim.width();
-    int h = dim.height();
+    // up-left
+    ray(dim, x, y, -1, -1, occupied, result);
+    // up-right
+    ray(dim, x, y, 1, -1, occupied, result);
+    // down-right
+    ray(dim, x, y, 1, 1, occupied, result);
+    // down-left
+    ray(dim, x, y, -1, 1, occupied, result);
+    return result;
+  }
+
+  public static BitSet rookMoves(IDimension dim, int pos, BitSet occupied, BitSet result) {
+    int x = toX(dim, pos);
+    int y = toY(dim, pos);
     // up
-    for (int i = 1; y - i >= 0; i++) { result.set(pos - (i * w)); }
+    ray(dim, x, y, 0, -1, occupied, result);
     // right
-    for (int i = 1; x + i < w; i++) { result.set(pos + i); }
+    ray(dim, x, y, 1, 0, occupied, result);
     // down
-    for (int i = 1; y + i < h; i++) { result.set(pos + (i * w)); }
+    ray(dim, x, y, 0, 1, occupied, result);
     // left
-    for (int i = 1; x - i >= 0; i++) { result.set(pos - i); }
+    ray(dim, x, y, -1, 0, occupied, result);
+    return result;
+  }
+
+  private static BitSet ray(IDimension dim, int x, int y, int offX, int offY, BitSet occupied, BitSet result) {
+    for (int i = 1; contains(dim, x + i * offX, y + i * offY); i++) {
+      int p = toIndex(dim, x + i * offX, y + i * offY);
+      if (occupied.get(p)) break;
+      result.set(p);
+    }
     return result;
   }
 }
