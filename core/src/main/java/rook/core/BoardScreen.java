@@ -108,18 +108,7 @@ public class BoardScreen extends Screen {
           if (pos < 0) return;
           Layer fieldLayer = fieldLayers.get(pos);
           screen.iface.anim.tweenAlpha(fieldLayer).from(.5f).to(1f).in(500);
-
-          int clickedPieceIndex = state.pieceIndexAtPos(pos);
-          int selectedPieceIndex = state.selectedPieceIndex.get();
-          if (clickedPieceIndex == selectedPieceIndex) {
-            state.selectedPieceIndex.update(-1);
-          } else if (clickedPieceIndex >= 0) {
-            state.selectedPieceIndex.update(clickedPieceIndex);
-          } else if (selectedPieceIndex >= 0) {
-            state.tryMoveSelectedPiece(pos);
-          } else {
-            state.selectedPieceIndex.update(-1);
-          }
+          state.clickOnPos(pos);
         }
 
         private int hitPos(Pointer.Interaction iact) {
