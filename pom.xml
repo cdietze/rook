@@ -14,8 +14,8 @@
 
   <properties>
     <source.level>1.8</source.level>
-    <playn.version>2.1-SNAPSHOT</playn.version>
-    <tripleplay.version>2.0.2a</tripleplay.version>
+    <playn.version>2.0.3</playn.version>
+    <tripleplay.version>2.0.3</tripleplay.version>
     <playn-util.version>master-SNAPSHOT</playn-util.version>
     <guava.version>24.1-android</guava.version>
     <guava.gwt.version>24.1-jre</guava.gwt.version>
