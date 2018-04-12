@@ -9,7 +9,7 @@
 
   <groupId>de.cdietze.rook</groupId>
   <artifactId>rook</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>master-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
