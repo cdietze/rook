@@ -12,6 +12,7 @@ import playn.scene.ImageLayer;
 import playn.scene.Layer;
 import playn.scene.Pointer;
 import react.RList;
+import react.RSet;
 import react.Slot;
 import tripleplay.ui.Background;
 import tripleplay.ui.Root;
@@ -72,7 +73,8 @@ public class BoardScreen extends Screen {
           Layer squareLayer = Layers.solid(color, 1f, 1f)
                   .setName("square_" + x + "_" + y)
                   .setOrigin(Layer.Origin.CENTER)
-                  .setDepth(Depths.SQUARES);
+                  .setDepth(Depths.SQUARES)
+                  .setVisible(false);
 
           layer.addAt(squareLayer, x + .5f, y + .5f);
           squareLayersBuilder.add(squareLayer);
@@ -98,6 +100,13 @@ public class BoardScreen extends Screen {
       state.selectedPieceIndex.connectNotify((value, oldValue) -> {
         if (oldValue != null && oldValue >= 0) pieceLayers.get(oldValue).setTint(Colors.WHITE);
         if (value >= 0) pieceLayers.get(value).setTint(Colors.YELLOW);
+      });
+      state.revealedSquares.connectNotify(new RSet.Listener<Integer>() {
+        @Override
+        public void onAdd(Integer pos) {
+          Layer squareLayer = squareLayers.get(pos);
+          squareLayer.setVisible(true);
+        }
       });
       layer.events().connect(new Pointer.Listener() {
         @Override

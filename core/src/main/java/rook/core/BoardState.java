@@ -1,13 +1,12 @@
 package rook.core;
 
 import com.google.common.collect.Iterables;
+import de.cdietze.playn_util.PointUtils;
 import pythagoras.i.Dimension;
 import pythagoras.i.IDimension;
 import pythagoras.i.IRectangle;
 import pythagoras.i.Rectangle;
-import react.IntValue;
-import react.RList;
-import react.ValueView;
+import react.*;
 
 import java.util.BitSet;
 import java.util.Optional;
@@ -17,6 +16,10 @@ public class BoardState {
   public final IRectangle rect = new Rectangle(dim);
 
   public final RList<Piece> pieces = RList.create();
+
+  public final RSet<Integer> revealedSquares = RSet.create();
+
+  public final Signal<Piece> pieceMoved = Signal.create();
   /**
    * The index of the currently selected piece in the [pieces] list.
    * Or -1 if nothing is selected.
@@ -27,6 +30,20 @@ public class BoardState {
     if (pieceIndex < 0) return Optional.empty();
     return Optional.of(pieces.get(pieceIndex));
   });
+
+  public BoardState() {
+    pieces.connectNotify(new RList.Listener<Piece>() {
+      @Override
+      public void onAdd(Piece piece) {
+        revealedSquares.add(piece.pos.get());
+        PointUtils.borderingNeighbors(dim, piece.pos.get(), new BitSet()).stream().forEach(revealedSquares::add);
+      }
+    });
+    pieceMoved.connect(piece -> {
+      revealedSquares.add(piece.pos.get());
+      PointUtils.borderingNeighbors(dim, piece.pos.get(), new BitSet()).stream().forEach(revealedSquares::add);
+    });
+  }
 
   public BitSet occupiedSquares(BitSet result) {
     pieces.forEach(p -> result.set(p.pos.get()));
@@ -60,6 +77,7 @@ public class BoardState {
     if (moves.get(dest)) {
       piece.pos.update(dest);
       selectedPieceIndex.update(-1);
+      pieceMoved.emit(piece);
       return true;
     } else {
       return false;
