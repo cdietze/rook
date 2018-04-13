@@ -1,6 +1,9 @@
 build:
 	mvn clean package
 
+clean:
+	mvn clean
+
 run-java:
 	mvn test -Pjavarun
 
