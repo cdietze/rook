@@ -41,8 +41,9 @@ public class BoardState {
     pieceMoved.connect(piece -> revealBorderingSquares(piece.pos.get()));
   }
 
-  public BitSet occupiedSquares(BitSet result) {
-    pieces.forEach(p -> result.set(p.pos.get()));
+  public BitSet passableSquares(BitSet result) {
+    revealedSquares.forEach(result::set);
+    pieces.forEach(p -> result.set(p.pos.get(), false));
     return result;
   }
 
@@ -69,7 +70,7 @@ public class BoardState {
     Optional<Piece> optionalPiece = selectedPiece.get();
     if (!optionalPiece.isPresent()) return false;
     Piece piece = optionalPiece.get();
-    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), occupiedSquares(new BitSet()), new BitSet());
+    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), passableSquares(new BitSet()), new BitSet());
     if (moves.get(dest)) {
       piece.pos.update(dest);
       selectedPieceIndex.update(-1);
