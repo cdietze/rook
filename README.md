@@ -7,11 +7,11 @@ To compile the JVM version:
 
     make
     
-To start the JVM version (requires Java 9+):
+To start the JVM version:
 
     make run-java
     
-To start the html version:
+To start the html version (requires JDK8):
 
     make run-html
 
