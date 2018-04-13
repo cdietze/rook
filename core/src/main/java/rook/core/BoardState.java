@@ -35,14 +35,10 @@ public class BoardState {
     pieces.connectNotify(new RList.Listener<Piece>() {
       @Override
       public void onAdd(Piece piece) {
-        revealedSquares.add(piece.pos.get());
-        PointUtils.borderingNeighbors(dim, piece.pos.get(), new BitSet()).stream().forEach(revealedSquares::add);
+        revealBorderingSquares(piece.pos.get());
       }
     });
-    pieceMoved.connect(piece -> {
-      revealedSquares.add(piece.pos.get());
-      PointUtils.borderingNeighbors(dim, piece.pos.get(), new BitSet()).stream().forEach(revealedSquares::add);
-    });
+    pieceMoved.connect(piece -> revealBorderingSquares(piece.pos.get()));
   }
 
   public BitSet occupiedSquares(BitSet result) {
@@ -81,6 +77,14 @@ public class BoardState {
       return true;
     } else {
       return false;
+    }
+  }
+
+  private void revealBorderingSquares(int pos) {
+    revealedSquares.add(pos);
+    BitSet set = PointUtils.borderingNeighbors(dim, pos, new BitSet());
+    for (int i = set.nextSetBit(0); i >= 0; i = set.nextSetBit(i + 1)) {
+      revealedSquares.add(i);
     }
   }
 }
