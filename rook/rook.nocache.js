@@ -335,7 +335,7 @@ function rook(){
     }
     var strongName;
     try {
-      strongName = '8C635CC71D66CF9F818B1C9205856291';
+      strongName = '780AC4F8D976813F1196BD5A5A49819B';
       var idx = strongName.indexOf(':');
       if (idx != -1) {
         softPermutationId = parseInt(strongName.substring(idx + 1), 10);
