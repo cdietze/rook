@@ -23,7 +23,7 @@ public class PieceMoves {
 
   public static BitSet kingMoves(IDimension dim, int pos, BitSet passable, BitSet result) {
     PointUtils.borderingNeighbors(dim, pos, result);
-    result.andNot(passable);
+    result.and(passable);
     return result;
   }
 
