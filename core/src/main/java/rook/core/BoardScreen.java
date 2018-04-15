@@ -84,7 +84,7 @@ public class BoardScreen extends Screen {
       state.pieces.connectNotify(new RList.Listener<Piece>() {
         @Override
         public void onAdd(Piece piece) {
-          final Layer pieceLayer = createPieceLayer(screen.game.images.pieceImage(piece.type));
+          final Layer pieceLayer = createPieceLayer(screen.game.images.pieceImage(piece.side, piece.type));
           pieceLayers.add(pieceLayer);
           layer.add(pieceLayer);
           piece.pos.connectNotify(new Slot<Integer>() {

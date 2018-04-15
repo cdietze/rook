@@ -10,6 +10,9 @@ import react.*;
 
 import java.util.BitSet;
 import java.util.Optional;
+import java.util.stream.Stream;
+
+import static com.google.common.base.Preconditions.checkState;
 
 public class GameState {
   public final IDimension dim = new Dimension(8, 8);
@@ -31,14 +34,25 @@ public class GameState {
     return Optional.of(pieces.get(pieceIndex));
   });
 
+  public final Stream<Piece> playerPieces() {
+    return pieces.stream().filter(p -> p.side == Piece.Side.PLAYER);
+  }
+  public final Stream<Piece> enemyPieces() {
+    return pieces.stream().filter(p -> p.side == Piece.Side.ENEMY);
+  }
+
   public GameState() {
     pieces.connectNotify(new RList.Listener<Piece>() {
       @Override
       public void onAdd(Piece piece) {
-        revealBorderingSquares(piece.pos.get());
+        if (piece.side == Piece.Side.PLAYER) {
+          revealBorderingSquares(piece.pos.get());
+        }
       }
     });
-    pieceMoved.connect(piece -> revealBorderingSquares(piece.pos.get()));
+    pieceMoved
+            .filter(p -> p.side == Piece.Side.PLAYER)
+            .connect(piece -> revealBorderingSquares(piece.pos.get()));
   }
 
   public BitSet passableSquares(BitSet result) {
@@ -48,21 +62,28 @@ public class GameState {
   }
 
   public int pieceIndexAtPos(final int pos) {
-    pieces.stream().filter(piece -> piece.pos.get() == pos).findFirst();
     return Iterables.indexOf(pieces, piece -> piece.pos.get() == pos);
   }
 
   public void clickOnSquare(int pos) {
     int clickedPieceIndex = pieceIndexAtPos(pos);
     int selectedPieceIndexValue = selectedPieceIndex.get();
-    if (clickedPieceIndex == selectedPieceIndexValue) {
+    if (clickedPieceIndex < 0 && selectedPieceIndexValue < 0) {
+      // Clicked on no piece while no piece is selected -> ignore
+    } else if (clickedPieceIndex == selectedPieceIndexValue) {
+      // Clicked on already selected piece -> deselect
       selectedPieceIndex.update(-1);
     } else if (clickedPieceIndex >= 0) {
-      selectedPieceIndex.update(clickedPieceIndex);
-    } else if (selectedPieceIndexValue >= 0) {
-      tryMoveSelectedPiece(pos);
+      Piece piece = pieces.get(clickedPieceIndex);
+      if (piece.side == Piece.Side.PLAYER) {
+        // Select piece
+        selectedPieceIndex.update(clickedPieceIndex);
+      }
     } else {
-      selectedPieceIndex.update(-1);
+      // Clicked on destination, try to move
+      //noinspection ConstantConditions
+      checkState(selectedPieceIndexValue >= 0);
+      tryMoveSelectedPiece(pos);
     }
   }
 

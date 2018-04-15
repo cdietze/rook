@@ -18,16 +18,27 @@ public class ImageLoader {
     public final Image whiteKing = plat.assets().getImage("images/cburnett/wK.png");
     public final Image whiteRook = plat.assets().getImage("images/cburnett/wR.png");
 
-    public final Image pieceImage(Piece.Type type) {
-      switch (type) {
-        case BISHOP:
-          return whiteBishop;
-        case KING:
-          return whiteKing;
-        case ROOK:
-          return whiteRook;
+    public final Image blackRook = plat.assets().getImage("images/cburnett/bR.png");
+
+    public final Image pieceImage(Piece.Side side, Piece.Type type) {
+      switch (side) {
+        case PLAYER:
+          switch (type) {
+            case BISHOP:
+              return whiteBishop;
+            case KING:
+              return whiteKing;
+            case ROOK:
+              return whiteRook;
+          }
+          break;
+        case ENEMY:
+          switch (type) {
+            case ROOK:
+              return blackRook;
+          }
       }
-      throw new RuntimeException("unknown piece type: " + type);
+      throw new RuntimeException("No image found for piece, side: " + side + ", type: " + type);
     }
   }
 }

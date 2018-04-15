@@ -6,13 +6,20 @@ public class Piece {
   enum Type {
     BISHOP,
     KING,
-    ROOK
+    ROOK,
   }
 
+  enum Side {
+    PLAYER,
+    ENEMY,
+  }
+
+  public final Side side;
   public final Type type;
   public final IntValue pos;
 
-  public Piece(Type type, int pos) {
+  public Piece(Side side, Type type, int pos) {
+    this.side = side;
     this.type = type;
     this.pos = new IntValue(pos);
   }

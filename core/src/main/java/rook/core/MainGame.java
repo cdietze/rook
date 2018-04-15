@@ -6,6 +6,10 @@ import playn.scene.SceneGame;
 import tripleplay.game.ScreenStack;
 import tripleplay.game.trans.SlideTransition;
 
+import static rook.core.Piece.Side.ENEMY;
+import static rook.core.Piece.Side.PLAYER;
+import static rook.core.Piece.Type.*;
+
 public class MainGame extends SceneGame {
 
   public final ScreenStack screens = new ScreenStack(this, rootLayer) {
@@ -31,10 +35,12 @@ public class MainGame extends SceneGame {
     new Pointer(plat, rootLayer, true);
 
     GameState gameState = new GameState();
-    gameState.pieces.add(new Piece(Piece.Type.KING, 0));
-    gameState.pieces.add(new Piece(Piece.Type.BISHOP, 1));
-    gameState.pieces.add(new Piece(Piece.Type.BISHOP, 2));
-    gameState.pieces.add(new Piece(Piece.Type.ROOK, 3));
+    gameState.pieces.add(new Piece(PLAYER, KING, 0));
+    gameState.pieces.add(new Piece(PLAYER, BISHOP, 1));
+    gameState.pieces.add(new Piece(PLAYER, BISHOP, 2));
+    gameState.pieces.add(new Piece(PLAYER, ROOK, 3));
+
+    gameState.pieces.add(new Piece(ENEMY, ROOK, 4));
     screens.push(new BoardScreen(this, gameState));
   }
 }
