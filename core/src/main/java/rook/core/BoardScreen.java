@@ -27,9 +27,9 @@ import java.util.List;
 public class BoardScreen extends Screen {
 
   public final MainGame game;
-  private final BoardState state;
+  private final GameState state;
 
-  public BoardScreen(MainGame game, BoardState state) {
+  public BoardScreen(MainGame game, GameState state) {
     super(game);
     this.game = game;
     this.state = state;
@@ -59,7 +59,7 @@ public class BoardScreen extends Screen {
     private final List<Layer> squareLayers;
     private final List<Layer> pieceLayers = new ArrayList<>();
 
-    public Board(final BoardScreen screen, final BoardState state) {
+    public Board(final BoardScreen screen, final GameState state) {
       this.screen = screen;
       this.plat = screen.plat;
       layer.setName("board");

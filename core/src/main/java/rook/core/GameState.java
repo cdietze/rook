@@ -11,7 +11,7 @@ import react.*;
 import java.util.BitSet;
 import java.util.Optional;
 
-public class BoardState {
+public class GameState {
   public final IDimension dim = new Dimension(8, 8);
   public final IRectangle rect = new Rectangle(dim);
 
@@ -31,7 +31,7 @@ public class BoardState {
     return Optional.of(pieces.get(pieceIndex));
   });
 
-  public BoardState() {
+  public GameState() {
     pieces.connectNotify(new RList.Listener<Piece>() {
       @Override
       public void onAdd(Piece piece) {
