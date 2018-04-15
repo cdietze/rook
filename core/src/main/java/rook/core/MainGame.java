@@ -30,11 +30,11 @@ public class MainGame extends SceneGame {
     // Register Pointer so we can handle any pointer input (clicks, mouse/touch events etc.)
     new Pointer(plat, rootLayer, true);
 
-    BoardState boardState = new BoardState();
-    boardState.pieces.add(new Piece(Piece.Type.KING, 0));
-    boardState.pieces.add(new Piece(Piece.Type.BISHOP, 1));
-    boardState.pieces.add(new Piece(Piece.Type.BISHOP, 2));
-    boardState.pieces.add(new Piece(Piece.Type.ROOK, 3));
-    screens.push(new BoardScreen(this, boardState));
+    GameState gameState = new GameState();
+    gameState.pieces.add(new Piece(Piece.Type.KING, 0));
+    gameState.pieces.add(new Piece(Piece.Type.BISHOP, 1));
+    gameState.pieces.add(new Piece(Piece.Type.BISHOP, 2));
+    gameState.pieces.add(new Piece(Piece.Type.ROOK, 3));
+    screens.push(new BoardScreen(this, gameState));
   }
 }
