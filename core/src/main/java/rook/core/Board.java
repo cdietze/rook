@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList;
 import de.cdietze.playn_util.PointUtils;
 import playn.core.Image;
 import playn.core.Platform;
+import playn.core.Surface;
 import playn.scene.GroupLayer;
 import playn.scene.ImageLayer;
 import playn.scene.Layer;
@@ -18,10 +19,14 @@ import tripleplay.util.Layers;
 import java.util.ArrayList;
 import java.util.List;
 
+import static de.cdietze.playn_util.PointUtils.toX;
+import static de.cdietze.playn_util.PointUtils.toY;
+
 public class Board {
   interface Depths {
     float SQUARES = 0f;
     float PIECES = 1f;
+    float INTENTIONS = 2f;
   }
 
   private final BoardScreen screen;
@@ -41,6 +46,7 @@ public class Board {
     layer.addAt(Layers.solid(0xff222222, state.dim.width(), state.dim.height()).setOrigin(Layer.Origin.CENTER).setDepth(-10), layer.width() / 2, layer.height() / 2);
     this.squareLayers = createSquareLayers();
     initPieceLayersListener();
+    initIntentionLayersListener();
     initHighlightSelectedPieceListener();
     initMakeUnrevealedSquaresInvisibleListener();
     initInputListener();
@@ -74,12 +80,45 @@ public class Board {
         piece.pos.connectNotify(new Slot<Integer>() {
           @Override
           public void onEmit(Integer pos) {
-            int x = PointUtils.toX(state.dim, pos);
-            int y = PointUtils.toY(state.dim, pos);
+            int x = toX(state.dim, pos);
+            int y = toY(state.dim, pos);
             pieceLayer.setTranslation(x + .5f, y + .5f);
             pieceLayer.setVisible(piece.side == Piece.Side.PLAYER || state.revealedSquares.contains(pos));
           }
         });
+      }
+    });
+  }
+
+  private void initIntentionLayersListener() {
+    List<Layer> intentionLayers = new ArrayList<>();
+    state.moveIntentions.connectNotify(new RList.Listener<MoveIntention>() {
+      float width = state.dim.width();
+      float height = state.dim.height();
+      @Override
+      public void onAdd(MoveIntention intention) {
+        int posX = toX(state.dim, intention.piece.pos.get());
+        int posY = toY(state.dim, intention.piece.pos.get());
+        int destX = toX(state.dim, intention.destination);
+        int destY = toY(state.dim, intention.destination);
+        // TODO: hide intention on unrevealed squares. Maybe add "fog of war" squares on top.
+        Layer intentionLayer = new Layer() {
+          @Override
+          public float width() { return width; }
+          @Override
+          public float height() { return height; }
+          @Override
+          protected void paintImpl(Surface surf) {
+            surf.setFillColor(Colors.darker(Colors.RED))
+                    .drawLine(posX + .5f, posY + .5f, destX + .5f, destY + .5f, 0.1f);
+          }
+        }.setDepth(Depths.INTENTIONS);
+        intentionLayers.add(intentionLayer);
+        layer.add(intentionLayer);
+      }
+      @Override
+      public void onRemove(int index, MoveIntention intention) {
+        intentionLayers.remove(index).close();
       }
     });
   }
