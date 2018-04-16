@@ -129,7 +129,7 @@ public class GameState {
       Piece piece = intention.piece;
       BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), passableSquaresForEnemy(new BitSet()), new BitSet());
       if (!moves.get(intention.destination)) {
-        // TODO: Carry move out as far as possible, currently we may still jump over player or enemy pieces
+        // TODO: Carry move out as far as possible, currently we don't move at all when interrupted
         return;
       }
       piece.pos.update(intention.destination);
