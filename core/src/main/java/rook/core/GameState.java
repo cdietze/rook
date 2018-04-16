@@ -1,5 +1,6 @@
 package rook.core;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.Iterables;
 import de.cdietze.playn_util.PointUtils;
 import pythagoras.i.Dimension;
@@ -40,14 +41,18 @@ public class GameState {
     return Optional.of(pieces.get(pieceIndex));
   });
 
-  private final boolean inProgress = false;
-
   public final Stream<Piece> playerPieces() {
     return pieces.stream().filter(p -> p.side == Piece.Side.PLAYER);
   }
   public final Stream<Piece> enemyPieces() {
     return pieces.stream().filter(p -> p.side == Piece.Side.ENEMY);
   }
+
+  /**
+   * List of the enemy intentions for the next move.
+   * If a player would interfere (e.g. by pushing or destroying an enemy), these values need to be updated timely.
+   */
+  public final RList<MoveIntention> moveIntentions = RList.create();
 
   public GameState(Random random) {
     this.random = random;
@@ -119,14 +124,29 @@ public class GameState {
   }
 
   private void moveEnemyPieces() {
+    // Execute planned intentions
+    moveIntentions.forEach((intention) -> {
+      Piece piece = intention.piece;
+      BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), passableSquaresForEnemy(new BitSet()), new BitSet());
+      if (!moves.get(intention.destination)) {
+        // TODO: Carry move out as far as possible, currently we may still jump over player or enemy pieces
+        return;
+      }
+      piece.pos.update(intention.destination);
+      pieceMoved.emit(piece);
+    });
+
+    // Make intentions for next move
+    moveIntentions.clear();
     enemyPieces().forEach(piece -> {
       BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), passableSquaresForEnemy(new BitSet()), new BitSet());
       OptionalInt moveDest = BitSetUtils.randomElement(random, moves);
       if (moveDest.isPresent()) {
-        piece.pos.update(moveDest.getAsInt());
-        pieceMoved.emit(piece);
+        moveIntentions.add(new MoveIntention(piece, moveDest.getAsInt()));
       }
     });
+
+    System.out.println("Create new moveIntentions: " + moveIntentions);
   }
 
   private void revealBorderingSquares(int pos) {
@@ -135,5 +155,23 @@ public class GameState {
     for (int i = set.nextSetBit(0); i >= 0; i = set.nextSetBit(i + 1)) {
       revealedSquares.add(i);
     }
+  }
+}
+
+class MoveIntention {
+  public final Piece piece;
+  public final int destination;
+
+  public MoveIntention(Piece piece, int destination) {
+    this.piece = piece;
+    this.destination = destination;
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+            .add("piece", piece)
+            .add("destination", destination)
+            .toString();
   }
 }
