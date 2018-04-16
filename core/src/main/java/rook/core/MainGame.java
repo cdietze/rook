@@ -6,6 +6,8 @@ import playn.scene.SceneGame;
 import tripleplay.game.ScreenStack;
 import tripleplay.game.trans.SlideTransition;
 
+import java.util.Random;
+
 import static rook.core.Piece.Side.ENEMY;
 import static rook.core.Piece.Side.PLAYER;
 import static rook.core.Piece.Type.*;
@@ -34,7 +36,7 @@ public class MainGame extends SceneGame {
     // Register Pointer so we can handle any pointer input (clicks, mouse/touch events etc.)
     new Pointer(plat, rootLayer, true);
 
-    GameState gameState = new GameState();
+    GameState gameState = new GameState(new Random());
     gameState.pieces.add(new Piece(PLAYER, KING, 0));
     gameState.pieces.add(new Piece(PLAYER, BISHOP, 1));
     gameState.pieces.add(new Piece(PLAYER, BISHOP, 2));
