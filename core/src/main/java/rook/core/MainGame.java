@@ -40,9 +40,11 @@ public class MainGame extends SceneGame {
     gameState.pieces.add(new Piece(PLAYER, KING, 0));
     gameState.pieces.add(new Piece(PLAYER, BISHOP, 1));
     gameState.pieces.add(new Piece(PLAYER, BISHOP, 2));
+    gameState.pieces.add(new Piece(PLAYER, BISHOP, 10));
     gameState.pieces.add(new Piece(PLAYER, ROOK, 3));
 
     gameState.pieces.add(new Piece(ENEMY, ROOK, 4));
+    gameState.pieces.add(new Piece(ENEMY, BISHOP, 12));
     screens.push(new BoardScreen(this, gameState));
   }
 }
