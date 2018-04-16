@@ -10,6 +10,10 @@ interface BitSetUtils {
     int cardinality = bitSet.cardinality();
     if (cardinality == 0) return OptionalInt.empty();
     int n = random.nextInt(cardinality);
-    return bitSet.stream().skip(n).findFirst();
+    int i = bitSet.nextSetBit(0);
+    while (n-- > 0) {
+      i = bitSet.nextSetBit(i + 1);
+    }
+    return OptionalInt.of(i);
   }
 }
