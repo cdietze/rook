@@ -93,6 +93,7 @@ public class BoardScreen extends Screen {
               int x = PointUtils.toX(state.dim, pos);
               int y = PointUtils.toY(state.dim, pos);
               pieceLayer.setTranslation(x + .5f, y + .5f);
+              pieceLayer.setVisible(piece.side == Piece.Side.PLAYER || state.revealedSquares.contains(pos));
             }
           });
         }

@@ -10,11 +10,16 @@ import react.*;
 
 import java.util.BitSet;
 import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.Random;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkState;
 
 public class GameState {
+
+  private final Random random;
+
   public final IDimension dim = new Dimension(8, 8);
   public final IRectangle rect = new Rectangle(dim);
 
@@ -23,6 +28,7 @@ public class GameState {
   public final RSet<Integer> revealedSquares = RSet.create();
 
   public final Signal<Piece> pieceMoved = Signal.create();
+
   /**
    * The index of the currently selected piece in the [pieces] list.
    * Or -1 if nothing is selected.
@@ -34,6 +40,8 @@ public class GameState {
     return Optional.of(pieces.get(pieceIndex));
   });
 
+  private final boolean inProgress = false;
+
   public final Stream<Piece> playerPieces() {
     return pieces.stream().filter(p -> p.side == Piece.Side.PLAYER);
   }
@@ -41,7 +49,8 @@ public class GameState {
     return pieces.stream().filter(p -> p.side == Piece.Side.ENEMY);
   }
 
-  public GameState() {
+  public GameState(Random random) {
+    this.random = random;
     pieces.connectNotify(new RList.Listener<Piece>() {
       @Override
       public void onAdd(Piece piece) {
@@ -55,8 +64,14 @@ public class GameState {
             .connect(piece -> revealBorderingSquares(piece.pos.get()));
   }
 
-  public BitSet passableSquares(BitSet result) {
+  public BitSet passableSquaresForPlayer(BitSet result) {
     revealedSquares.forEach(result::set);
+    pieces.forEach(p -> result.set(p.pos.get(), false));
+    return result;
+  }
+
+  public BitSet passableSquaresForEnemy(BitSet result) {
+    result.set(0, dim.width() * dim.height());
     pieces.forEach(p -> result.set(p.pos.get(), false));
     return result;
   }
@@ -91,15 +106,27 @@ public class GameState {
     Optional<Piece> optionalPiece = selectedPiece.get();
     if (!optionalPiece.isPresent()) return false;
     Piece piece = optionalPiece.get();
-    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), passableSquares(new BitSet()), new BitSet());
+    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), passableSquaresForPlayer(new BitSet()), new BitSet());
     if (moves.get(dest)) {
-      piece.pos.update(dest);
       selectedPieceIndex.update(-1);
+      piece.pos.update(dest);
       pieceMoved.emit(piece);
+      moveEnemyPieces();
       return true;
     } else {
       return false;
     }
+  }
+
+  private void moveEnemyPieces() {
+    enemyPieces().forEach(piece -> {
+      BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), passableSquaresForEnemy(new BitSet()), new BitSet());
+      OptionalInt moveDest = BitSetUtils.randomElement(random, moves);
+      if (moveDest.isPresent()) {
+        piece.pos.update(moveDest.getAsInt());
+        pieceMoved.emit(piece);
+      }
+    });
   }
 
   private void revealBorderingSquares(int pos) {
