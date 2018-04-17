@@ -9,6 +9,9 @@ import static de.cdietze.playn_util.PointUtils.*;
 
 public class PieceMoves {
 
+  /**
+   * @returns a BitSet containing all possible destinations for the given piece.
+   */
   public static BitSet moves(IDimension dim, Piece.Type type, int pos, BitSet passable, BitSet result) {
     switch (type) {
       case BISHOP:
