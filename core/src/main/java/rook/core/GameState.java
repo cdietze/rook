@@ -3,10 +3,7 @@ package rook.core;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Iterables;
 import de.cdietze.playn_util.PointUtils;
-import pythagoras.i.Dimension;
-import pythagoras.i.IDimension;
-import pythagoras.i.IRectangle;
-import pythagoras.i.Rectangle;
+import pythagoras.i.*;
 import react.*;
 
 import java.util.BitSet;
@@ -16,6 +13,9 @@ import java.util.Random;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkState;
+import static de.cdietze.playn_util.PointUtils.toX;
+import static de.cdietze.playn_util.PointUtils.toY;
+import static java.lang.Math.abs;
 
 public class GameState {
 
@@ -67,6 +67,18 @@ public class GameState {
     pieceMoved
             .filter(p -> p.side == Piece.Side.PLAYER)
             .connect(piece -> revealBorderingSquares(piece.pos.get()));
+
+    pieces.connectNotify(new RList.Listener<Piece>() {
+      @Override
+      public void onAdd(Piece piece) {
+        updatePassableSquaresForEnemy();
+      }
+      @Override
+      public void onRemove(Piece elem) {
+        updatePassableSquaresForEnemy();
+      }
+    });
+    pieceMoved.connect(piece -> updatePassableSquaresForEnemy());
   }
 
   public BitSet passableSquaresForPlayer(BitSet result) {
@@ -75,10 +87,16 @@ public class GameState {
     return result;
   }
 
-  public BitSet passableSquaresForEnemy(BitSet result) {
+  public final Value<BitSet> passableSquaresForEnemy = Value.create(calcPassableSquaresForEnemy(new BitSet()));
+
+  private BitSet calcPassableSquaresForEnemy(BitSet result) {
     result.set(0, dim.width() * dim.height());
     pieces.forEach(p -> result.set(p.pos.get(), false));
     return result;
+  }
+
+  private void updatePassableSquaresForEnemy() {
+    this.passableSquaresForEnemy.update(calcPassableSquaresForEnemy(new BitSet()));
   }
 
   public int pieceIndexAtPos(final int pos) {
@@ -127,22 +145,26 @@ public class GameState {
     // Execute planned intentions
     moveIntentions.forEach((intention) -> {
       Piece piece = intention.piece;
-      BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), passableSquaresForEnemy(new BitSet()), new BitSet());
-      if (!moves.get(intention.destination)) {
-        // TODO: Carry move out as far as possible, currently we don't move at all when interrupted
-        return;
+      int dest = intention.dest.get();
+      if (!piece.pos.get().equals(dest)) {
+        piece.pos.update(dest);
+        pieceMoved.emit(piece);
       }
-      piece.pos.update(intention.destination);
-      pieceMoved.emit(piece);
     });
 
     // Make intentions for next move
     moveIntentions.clear();
     enemyPieces().forEach(piece -> {
-      BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), passableSquaresForEnemy(new BitSet()), new BitSet());
+      BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), passableSquaresForEnemy.get(), new BitSet());
       OptionalInt moveDest = BitSetUtils.randomElement(random, moves);
       if (moveDest.isPresent()) {
-        moveIntentions.add(new MoveIntention(piece, moveDest.getAsInt()));
+        int x = toX(dim, piece.pos.get());
+        int y = toY(dim, piece.pos.get());
+        int destX = toX(dim, moveDest.getAsInt());
+        int destY = toY(dim, moveDest.getAsInt());
+        int gcd = MathUtils.gcd(abs(destX - x), abs(destY - y));
+        Point dir = new Point((destX - x) / gcd, (destY - y) / gcd);
+        moveIntentions.add(new MoveIntention(this, piece, dir, gcd));
       }
     });
 
@@ -159,19 +181,29 @@ public class GameState {
 }
 
 class MoveIntention {
-  public final Piece piece;
-  public final int destination;
 
-  public MoveIntention(Piece piece, int destination) {
+  public final Piece piece;
+  public final IPoint dir;
+  public final int moveLength;
+
+  public final ValueView<Integer> dest;
+
+  public MoveIntention(GameState state, Piece piece, IPoint dir, int moveLength) {
     this.piece = piece;
-    this.destination = destination;
+    this.dir = dir;
+    this.moveLength = moveLength;
+    this.dest = state.passableSquaresForEnemy.map(passableSquares ->
+            PieceMoves.moveInDir(state.dim, piece.pos.get(), dir.x(), dir.y(), state.passableSquaresForEnemy.get(), moveLength)
+    );
   }
 
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
             .add("piece", piece)
-            .add("destination", destination)
+            .add("dir", dir)
+            .add("moveLength", moveLength)
+            .add("dest", dest.get())
             .toString();
   }
 }

@@ -66,4 +66,19 @@ public class PieceMoves {
     }
     return result;
   }
+  /**
+   * @returns the index of the destination square when a piece on `pos` square moves in dirX,dirY up to `moveLength` times.
+   * If the piece hits an impassable square on its way, the last passable square is returned.
+   */
+  public static int moveInDir(IDimension dim, int pos, int dirX, int dirY, BitSet passable, int moveLength) {
+    int best = pos;
+    int posX = toX(dim, pos);
+    int posY = toY(dim, pos);
+    for (int i = 1; i <= moveLength && contains(dim, posX + i * dirX, posY + i * dirY); i++) {
+      int p = toIndex(dim, posX + i * dirX, posY + i * dirY);
+      if (!passable.get(p)) return best;
+      else best = p;
+    }
+    return best;
+  }
 }
