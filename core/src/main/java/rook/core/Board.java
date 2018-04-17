@@ -99,8 +99,10 @@ public class Board {
       public void onAdd(MoveIntention intention) {
         int posX = toX(state.dim, intention.piece.pos.get());
         int posY = toY(state.dim, intention.piece.pos.get());
-        int destX = toX(state.dim, intention.destination);
-        int destY = toY(state.dim, intention.destination);
+        // TODO update gfx when intention.dest changes
+        int dest = intention.dest.get();
+        int destX = toX(state.dim, dest);
+        int destY = toY(state.dim, dest);
         // TODO: hide intention on unrevealed squares. Maybe add "fog of war" squares on top.
         Layer intentionLayer = new Layer() {
           @Override
