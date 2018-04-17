@@ -27,6 +27,7 @@ public class Board {
     float SQUARES = 0f;
     float PIECES = 1f;
     float INTENTIONS = 2f;
+    float FOG_OF_WAR = 3f;
   }
 
   private final BoardScreen screen;
@@ -48,7 +49,7 @@ public class Board {
     initPieceLayersListener();
     initIntentionLayersListener();
     initHighlightSelectedPieceListener();
-    initMakeUnrevealedSquaresInvisibleListener();
+    initFogOfWar();
     initInputListener();
   }
 
@@ -60,8 +61,7 @@ public class Board {
         Layer squareLayer = Layers.solid(color, 1f, 1f)
                 .setName("square_" + x + "_" + y)
                 .setOrigin(Layer.Origin.CENTER)
-                .setDepth(Depths.SQUARES)
-                .setVisible(false);
+                .setDepth(Depths.SQUARES);
 
         rootLayer.addAt(squareLayer, x + .5f, y + .5f);
         squareLayersBuilder.add(squareLayer);
@@ -103,7 +103,6 @@ public class Board {
         int dest = intention.dest.get();
         int destX = toX(state.dim, dest);
         int destY = toY(state.dim, dest);
-        // TODO: hide intention on unrevealed squares. Maybe add "fog of war" squares on top.
         Layer intentionLayer = new Layer() {
           @Override
           public float width() { return width; }
@@ -132,12 +131,23 @@ public class Board {
     });
   }
 
-  private void initMakeUnrevealedSquaresInvisibleListener() {
+  private void initFogOfWar() {
+    List<Layer> fogLayers = new ArrayList<>();
+    for (int y = 0; y < state.dim.height(); ++y) {
+      for (int x = 0; x < state.dim.width(); ++x) {
+        Layer layer = Layers.solid(Colors.BLACK, 1f, 1f)
+                .setName("fog_" + x + "_" + y)
+                .setOrigin(Layer.Origin.CENTER)
+                .setDepth(Depths.FOG_OF_WAR);
+        rootLayer.addAt(layer, x + .5f, y + .5f);
+        fogLayers.add(layer);
+      }
+    }
     state.revealedSquares.connectNotify(new RSet.Listener<Integer>() {
       @Override
       public void onAdd(Integer pos) {
-        Layer squareLayer = squareLayers.get(pos);
-        squareLayer.setVisible(true);
+        fogLayers.get(pos).close();
+        fogLayers.set(pos, null);
       }
     });
   }
