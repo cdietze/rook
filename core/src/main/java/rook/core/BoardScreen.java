@@ -26,7 +26,7 @@ public class BoardScreen extends Screen {
     root.setSize(plat.graphics().viewSize);
     Board board = new Board(this);
     float margin = 10f;
-    ScaledElement scaledElement = new ScaledElement(board.layer);
+    ScaledElement scaledElement = new ScaledElement(board.rootLayer);
     scaledElement.addStyles(Style.BACKGROUND.is(Background.solid(Colors.BLACK).inset(margin)));
     root.add(scaledElement.setConstraint(BorderLayout.CENTER));
   }

@@ -32,7 +32,7 @@ public class Board {
   private final BoardScreen screen;
   private final Platform plat;
   private final GameState state;
-  public final GroupLayer layer = new GroupLayer();
+  public final GroupLayer rootLayer = new GroupLayer();
   private final List<Layer> squareLayers;
   private final List<Layer> pieceLayers = new ArrayList<>();
 
@@ -40,10 +40,10 @@ public class Board {
     this.screen = screen;
     this.plat = screen.plat;
     this.state = screen.state;
-    layer.setName("board");
-    layer.setSize(state.dim.width(), state.dim.height());
-    layer.setOrigin(Layer.Origin.CENTER);
-    layer.addAt(Layers.solid(0xff222222, state.dim.width(), state.dim.height()).setOrigin(Layer.Origin.CENTER).setDepth(-10), layer.width() / 2, layer.height() / 2);
+    rootLayer.setName("board");
+    rootLayer.setSize(state.dim.width(), state.dim.height());
+    rootLayer.setOrigin(Layer.Origin.CENTER);
+    rootLayer.addAt(Layers.solid(0xff222222, state.dim.width(), state.dim.height()).setOrigin(Layer.Origin.CENTER).setDepth(-10), rootLayer.width() / 2, rootLayer.height() / 2);
     this.squareLayers = createSquareLayers();
     initPieceLayersListener();
     initIntentionLayersListener();
@@ -63,7 +63,7 @@ public class Board {
                 .setDepth(Depths.SQUARES)
                 .setVisible(false);
 
-        layer.addAt(squareLayer, x + .5f, y + .5f);
+        rootLayer.addAt(squareLayer, x + .5f, y + .5f);
         squareLayersBuilder.add(squareLayer);
       }
     }
@@ -76,7 +76,7 @@ public class Board {
       public void onAdd(Piece piece) {
         final Layer pieceLayer = createPieceLayer(screen.game.images.pieceImage(piece.side, piece.type));
         pieceLayers.add(pieceLayer);
-        layer.add(pieceLayer);
+        rootLayer.add(pieceLayer);
         piece.pos.connectNotify(new Slot<Integer>() {
           @Override
           public void onEmit(Integer pos) {
@@ -116,7 +116,7 @@ public class Board {
           }
         }.setDepth(Depths.INTENTIONS);
         intentionLayers.add(intentionLayer);
-        layer.add(intentionLayer);
+        rootLayer.add(intentionLayer);
       }
       @Override
       public void onRemove(int index, MoveIntention intention) {
@@ -143,10 +143,10 @@ public class Board {
   }
 
   private void initInputListener() {
-    layer.events().connect(new Pointer.Listener() {
+    rootLayer.events().connect(new Pointer.Listener() {
       @Override
       public void onStart(Pointer.Interaction iact) {
-        Preconditions.checkState(iact.hitLayer == layer);
+        Preconditions.checkState(iact.hitLayer == rootLayer);
         int pos = hitPos(iact);
         plat.log().debug("onStart", "iact", iact, "screen", new pythagoras.f.Point(iact), "local", iact.local, "pos", pos);
         if (pos < 0) return;
