@@ -11,6 +11,8 @@ import java.util.BitSet;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -28,7 +30,7 @@ public class GameState {
 
   public final RList<Piece> pieces = RList.create();
 
-  public final RSet<Integer> revealedSquares = RSet.create();
+  public final RSet<Integer> fogSquares = RSet.create();
 
   public final Signal<Piece> pieceMoved = Signal.create();
 
@@ -43,13 +45,32 @@ public class GameState {
     return Optional.of(pieces.get(pieceIndex));
   });
 
+  public final Value<BitSet> playerPieceSquares = Value.create(calcPlayerPieceSquares(new BitSet()));
+  public final Value<BitSet> enemyPieceSquares = Value.create(calcEnemyPieceSquares(new BitSet()));
+
+  public final Value<BitSet> occupiedSquaresForEnemy = Value.create(calcOccupiedSquaresForEnemy(new BitSet()));
+
+  private void updatePiecesBitSets() {
+    playerPieceSquares.update(calcPlayerPieceSquares(new BitSet()));
+    enemyPieceSquares.update(calcEnemyPieceSquares(new BitSet()));
+  }
+
+  private BitSet calcPlayerPieceSquares(BitSet result) {
+    pieces.stream().filter(p -> p.side == Piece.Side.PLAYER).forEach(p -> result.set(p.pos.get()));
+    return result;
+  }
+
+  private BitSet calcEnemyPieceSquares(BitSet result) {
+    pieces.stream().filter(p -> p.side == Piece.Side.ENEMY).forEach(p -> result.set(p.pos.get()));
+    return result;
+  }
+
   public final Stream<Piece> playerPieces() {
     return pieces.stream().filter(p -> p.side == Piece.Side.PLAYER);
   }
   public final Stream<Piece> enemyPieces() {
     return pieces.stream().filter(p -> p.side == Piece.Side.ENEMY);
   }
-
   /**
    * List of the enemy intentions for the next move.
    * If a player would interfere (e.g. by pushing or destroying an enemy), these values need to be updated timely.
@@ -59,6 +80,7 @@ public class GameState {
   public GameState(Random random, Log log) {
     this.random = random;
     this.log = log;
+    fogSquares.addAll(IntStream.range(0, dim.width() * dim.height()).boxed().collect(Collectors.toList()));
     pieces.connectNotify(new RList.Listener<Piece>() {
       @Override
       public void onAdd(Piece piece) {
@@ -74,32 +96,34 @@ public class GameState {
     pieces.connectNotify(new RList.Listener<Piece>() {
       @Override
       public void onAdd(Piece piece) {
-        updatePassableSquaresForEnemy();
+        updatePiecesBitSets();
+        updateOccupiedSquaresForEnemy();
       }
       @Override
       public void onRemove(Piece elem) {
-        updatePassableSquaresForEnemy();
+        updatePiecesBitSets();
+        updateOccupiedSquaresForEnemy();
       }
     });
-    pieceMoved.connect(piece -> updatePassableSquaresForEnemy());
+    pieceMoved.connect(piece -> updatePiecesBitSets());
+    pieceMoved.connect(piece -> updateOccupiedSquaresForEnemy());
   }
 
-  public BitSet passableSquaresForPlayer(BitSet result) {
-    revealedSquares.forEach(result::set);
-    pieces.forEach(p -> result.set(p.pos.get(), false));
+  // TODO: deduce this from fogSquares + playerPieceSquares + enemyPieceSquares
+  public BitSet occupiedSquaresForPlayer(BitSet result) {
+    fogSquares.forEach(result::set);
+    pieces.forEach(p -> result.set(p.pos.get(), true));
     return result;
   }
 
-  public final Value<BitSet> passableSquaresForEnemy = Value.create(calcPassableSquaresForEnemy(new BitSet()));
-
-  private BitSet calcPassableSquaresForEnemy(BitSet result) {
-    result.set(0, dim.width() * dim.height());
-    pieces.forEach(p -> result.set(p.pos.get(), false));
+  // TODO: deduce this from playerPieceSquares + enemyPieceSquares
+  private BitSet calcOccupiedSquaresForEnemy(BitSet result) {
+    pieces.forEach(p -> result.set(p.pos.get(), true));
     return result;
   }
 
-  private void updatePassableSquaresForEnemy() {
-    this.passableSquaresForEnemy.update(calcPassableSquaresForEnemy(new BitSet()));
+  private void updateOccupiedSquaresForEnemy() {
+    this.occupiedSquaresForEnemy.update(calcOccupiedSquaresForEnemy(new BitSet()));
   }
 
   public int pieceIndexAtPos(final int pos) {
@@ -114,12 +138,9 @@ public class GameState {
     } else if (clickedPieceIndex == selectedPieceIndexValue) {
       // Clicked on already selected piece -> deselect
       selectedPieceIndex.update(-1);
-    } else if (clickedPieceIndex >= 0) {
-      Piece piece = pieces.get(clickedPieceIndex);
-      if (piece.side == Piece.Side.PLAYER) {
-        // Select piece
-        selectedPieceIndex.update(clickedPieceIndex);
-      }
+    } else if (clickedPieceIndex >= 0 && pieces.get(clickedPieceIndex).side == Piece.Side.PLAYER) {
+      // Select piece
+      selectedPieceIndex.update(clickedPieceIndex);
     } else {
       // Clicked on destination, try to move
       //noinspection ConstantConditions
@@ -132,7 +153,7 @@ public class GameState {
     Optional<Piece> optionalPiece = selectedPiece.get();
     if (!optionalPiece.isPresent()) return false;
     Piece piece = optionalPiece.get();
-    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), passableSquaresForPlayer(new BitSet()), new BitSet());
+    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), occupiedSquaresForPlayer(new BitSet()), enemyPieceSquares.get(), new BitSet());
     if (moves.get(dest)) {
       selectedPieceIndex.update(-1);
       piece.pos.update(dest);
@@ -158,7 +179,7 @@ public class GameState {
     // Make intentions for next move
     moveIntentions.clear();
     enemyPieces().forEach(piece -> {
-      BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), passableSquaresForEnemy.get(), new BitSet());
+      BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), occupiedSquaresForEnemy.get(), playerPieceSquares.get(), new BitSet());
       OptionalInt moveDest = BitSetUtils.randomElement(random, moves);
       if (moveDest.isPresent()) {
         int x = toX(dim, piece.pos.get());
@@ -175,10 +196,10 @@ public class GameState {
   }
 
   private void revealBorderingSquares(int pos) {
-    revealedSquares.add(pos);
+    fogSquares.remove(pos);
     BitSet set = PointUtils.borderingNeighbors(dim, pos, new BitSet());
     for (int i = set.nextSetBit(0); i >= 0; i = set.nextSetBit(i + 1)) {
-      revealedSquares.add(i);
+      fogSquares.remove(i);
     }
   }
 }
@@ -189,15 +210,23 @@ class MoveIntention {
   public final IPoint dir;
   public final int moveLength;
 
-  public final ValueView<Integer> dest;
+  public final IntValue dest;
+
+  private final GameState state;
 
   public MoveIntention(GameState state, Piece piece, IPoint dir, int moveLength) {
+    this.state = state;
     this.piece = piece;
     this.dir = dir;
     this.moveLength = moveLength;
-    this.dest = state.passableSquaresForEnemy.map(passableSquares ->
-            PieceMoves.moveInDir(state.dim, piece.pos.get(), dir.x(), dir.y(), state.passableSquaresForEnemy.get(), moveLength)
-    );
+    this.dest = new IntValue(calcDest());
+    state.occupiedSquaresForEnemy.connect(x -> this.calcDest());
+  }
+
+  private int calcDest() {
+    BitSet opponent = new BitSet();
+    state.playerPieces().forEach(p -> opponent.set(p.pos.get()));
+    return PieceMoves.slideInDir(state.dim, piece.pos.get(), dir.x(), dir.y(), state.occupiedSquaresForEnemy.get(), opponent, moveLength);
   }
 
   @Override

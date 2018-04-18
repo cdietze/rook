@@ -36,7 +36,7 @@ public class MainGame extends SceneGame {
     // Register Pointer so we can handle any pointer input (clicks, mouse/touch events etc.)
     new Pointer(plat, rootLayer, true);
 
-    GameState gameState = new GameState(new Random());
+    GameState gameState = new GameState(new Random(), plat.log());
     gameState.pieces.add(new Piece(PLAYER, KING, 0));
     gameState.pieces.add(new Piece(PLAYER, BISHOP, 1));
     gameState.pieces.add(new Piece(PLAYER, BISHOP, 2));

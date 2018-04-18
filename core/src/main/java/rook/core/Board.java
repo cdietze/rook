@@ -83,7 +83,6 @@ public class Board {
             int x = toX(state.dim, pos);
             int y = toY(state.dim, pos);
             pieceLayer.setTranslation(x + .5f, y + .5f);
-            pieceLayer.setVisible(piece.side == Piece.Side.PLAYER || state.revealedSquares.contains(pos));
           }
         });
       }
@@ -133,19 +132,23 @@ public class Board {
 
   private void initFogOfWar() {
     List<Layer> fogLayers = new ArrayList<>();
-    for (int y = 0; y < state.dim.height(); ++y) {
-      for (int x = 0; x < state.dim.width(); ++x) {
+    state.fogSquares.connectNotify(new RSet.Listener<Integer>() {
+      @Override
+      public void onAdd(Integer pos) {
+        int x = toX(state.dim, pos);
+        int y = toY(state.dim, pos);
         Layer layer = Layers.solid(Colors.BLACK, 1f, 1f)
                 .setName("fog_" + x + "_" + y)
                 .setOrigin(Layer.Origin.CENTER)
                 .setDepth(Depths.FOG_OF_WAR);
         rootLayer.addAt(layer, x + .5f, y + .5f);
-        fogLayers.add(layer);
+        while (fogLayers.size() <= pos) {
+          fogLayers.add(null);
+        }
+        fogLayers.set(pos, layer);
       }
-    }
-    state.revealedSquares.connectNotify(new RSet.Listener<Integer>() {
       @Override
-      public void onAdd(Integer pos) {
+      public void onRemove(Integer pos) {
         fogLayers.get(pos).close();
         fogLayers.set(pos, null);
       }
