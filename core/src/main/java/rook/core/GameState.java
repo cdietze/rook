@@ -3,6 +3,7 @@ package rook.core;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Iterables;
 import de.cdietze.playn_util.PointUtils;
+import playn.core.Log;
 import pythagoras.i.*;
 import react.*;
 
@@ -20,6 +21,7 @@ import static java.lang.Math.abs;
 public class GameState {
 
   private final Random random;
+  private final Log log;
 
   public final IDimension dim = new Dimension(8, 8);
   public final IRectangle rect = new Rectangle(dim);
@@ -54,8 +56,9 @@ public class GameState {
    */
   public final RList<MoveIntention> moveIntentions = RList.create();
 
-  public GameState(Random random) {
+  public GameState(Random random, Log log) {
     this.random = random;
+    this.log = log;
     pieces.connectNotify(new RList.Listener<Piece>() {
       @Override
       public void onAdd(Piece piece) {
@@ -168,7 +171,7 @@ public class GameState {
       }
     });
 
-    System.out.println("Create new moveIntentions: " + moveIntentions);
+    log.debug("Made intentions for next move: " + moveIntentions);
   }
 
   private void revealBorderingSquares(int pos) {
