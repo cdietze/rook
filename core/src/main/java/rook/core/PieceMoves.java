@@ -27,7 +27,9 @@ public class PieceMoves {
 
   public static BitSet kingMoves(IDimension dim, int pos, BitSet occupied, BitSet captures, BitSet result) {
     PointUtils.borderingNeighbors(dim, pos, result);
-    result.andNot(occupied);
+    BitSet blocked = (BitSet) occupied.clone();
+    blocked.andNot(captures);
+    result.andNot(blocked);
     return result;
   }
 
