@@ -49,8 +49,6 @@ public class GameState {
   public final Value<BitSet> playerPieceSquares = Value.create(calcPlayerPieceSquares(new BitSet()));
   public final Value<BitSet> enemyPieceSquares = Value.create(calcEnemyPieceSquares(new BitSet()));
 
-  public final Value<BitSet> occupiedSquaresForEnemy = Value.create(calcOccupiedSquaresForEnemy(new BitSet()));
-
   private void updatePiecesBitSets() {
     playerPieceSquares.update(calcPlayerPieceSquares(new BitSet()));
     enemyPieceSquares.update(calcEnemyPieceSquares(new BitSet()));
@@ -58,11 +56,13 @@ public class GameState {
 
   private BitSet calcPlayerPieceSquares(BitSet result) {
     pieces.stream().filter(p -> p.side == Piece.Side.PLAYER).forEach(p -> result.set(p.pos.get()));
+    // System.out.println("calcPlayerPieceSquares, result:" + result);
     return result;
   }
 
   private BitSet calcEnemyPieceSquares(BitSet result) {
     pieces.stream().filter(p -> p.side == Piece.Side.ENEMY).forEach(p -> result.set(p.pos.get()));
+    // System.out.println("calcEnemyPieceSquares, result:" + result);
     return result;
   }
 
@@ -98,16 +98,13 @@ public class GameState {
       @Override
       public void onAdd(Piece piece) {
         updatePiecesBitSets();
-        updateOccupiedSquaresForEnemy();
       }
       @Override
       public void onRemove(Piece elem) {
         updatePiecesBitSets();
-        updateOccupiedSquaresForEnemy();
       }
     });
     pieceMoved.connect(piece -> updatePiecesBitSets());
-    pieceMoved.connect(piece -> updateOccupiedSquaresForEnemy());
   }
 
   // TODO: deduce this from fogSquares + playerPieceSquares + enemyPieceSquares
@@ -117,14 +114,21 @@ public class GameState {
     return result;
   }
 
-  // TODO: deduce this from playerPieceSquares + enemyPieceSquares
-  private BitSet calcOccupiedSquaresForEnemy(BitSet result) {
-    pieces.forEach(p -> result.set(p.pos.get(), true));
-    return result;
+  public final ValueView<BitSet> occupiedSquaresForEnemy;
+
+  {
+    Value<BitSet> result = Value.create(new BitSet());
+    playerPieceSquares.connect(x -> result.update(calcOccupiedSquaresForEnemy(new BitSet())));
+    enemyPieceSquares.connect(x -> result.update(calcOccupiedSquaresForEnemy(new BitSet())));
+    result.update(calcOccupiedSquaresForEnemy(new BitSet()));
+    occupiedSquaresForEnemy = result;
   }
 
-  private void updateOccupiedSquaresForEnemy() {
-    this.occupiedSquaresForEnemy.update(calcOccupiedSquaresForEnemy(new BitSet()));
+  private BitSet calcOccupiedSquaresForEnemy(BitSet result) {
+    result.or(playerPieceSquares.get());
+    result.or(enemyPieceSquares.get());
+    // System.out.println("calcOccupiedSquaresForEnemy, result:" + result + ", playerPieceSquares:" + playerPieceSquares.get() + ", enemyPieceSquares:" + enemyPieceSquares.get());
+    return result;
   }
 
   public int pieceIndexAtPos(final int pos) {
@@ -176,6 +180,7 @@ public class GameState {
         piece.pos.update(dest);
         pieceMoved.emit(piece);
       }
+      intention.close();
     });
 
     // Make intentions for next move
