@@ -225,7 +225,12 @@ public class GameState {
       Piece piece = intention.piece;
       int dest = intention.dest.get();
       if (!piece.pos.get().equals(dest)) {
-        // TODO: Handle what to do when an enemy piece steps on a player piece - capture? push?
+        Optional<Piece> pieceAtDest = pieceAtPos(dest);
+        if (pieceAtDest.isPresent()) {
+          // Capture this piece, i.e. remove it
+          boolean removed = pieces.remove(pieceAtDest.get());
+          checkState(removed);
+        }
         piece.pos.update(dest);
         pieceMoved.emit(piece);
       }
