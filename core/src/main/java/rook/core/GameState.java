@@ -3,7 +3,10 @@ package rook.core;
 import com.google.common.collect.Iterables;
 import de.cdietze.playn_util.PointUtils;
 import playn.core.Log;
-import pythagoras.i.*;
+import pythagoras.i.Dimension;
+import pythagoras.i.IDimension;
+import pythagoras.i.IRectangle;
+import pythagoras.i.Rectangle;
 import react.*;
 
 import java.util.BitSet;
@@ -17,7 +20,6 @@ import java.util.stream.Stream;
 import static com.google.common.base.Preconditions.checkState;
 import static de.cdietze.playn_util.PointUtils.toX;
 import static de.cdietze.playn_util.PointUtils.toY;
-import static java.lang.Math.abs;
 
 public class GameState {
 
@@ -154,6 +156,7 @@ public class GameState {
     Piece piece = optionalPiece.get();
     BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), occupiedSquaresForPlayer(new BitSet()), enemyPieceSquares.get(), new BitSet());
     if (moves.get(dest)) {
+      // TODO: push any existing piece here, recursively
       selectedPieceIndex.update(-1);
       piece.pos.update(dest);
       pieceMoved.emit(piece);
@@ -185,9 +188,11 @@ public class GameState {
         int y = toY(dim, piece.pos.get());
         int destX = toX(dim, moveDest.getAsInt());
         int destY = toY(dim, moveDest.getAsInt());
-        int gcd = MathUtils.gcd(abs(destX - x), abs(destY - y));
-        Point dir = new Point((destX - x) / gcd, (destY - y) / gcd);
-        moveIntentions.add(new MoveIntention(this, piece, dir, gcd));
+        int vecX = destX - x;
+        int vecY = destY - y;
+        int moveLength = Math.max(Math.abs(vecX), Math.abs(vecY));
+        Direction dir = Direction.fromVector(destX - x, destY - y);
+        moveIntentions.add(new MoveIntention(this, piece, dir, moveLength));
       }
     });
 
