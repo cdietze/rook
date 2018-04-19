@@ -215,6 +215,7 @@ public class GameState {
       checkState(removed);
     } else {
       piece.get().pos.update(toIndex(dim, destX, destY));
+      pieceMoved.emit(piece.get());
     }
   }
 
