@@ -107,10 +107,31 @@ public class GameState {
     pieceMoved.connect(piece -> updatePiecesBitSets());
   }
 
-  // TODO: deduce this from fogSquares + playerPieceSquares + enemyPieceSquares
-  public BitSet occupiedSquaresForPlayer(BitSet result) {
+  public final ValueView<BitSet> occupiedSquaresForPlayer;
+
+  {
+    Value<BitSet> result = Value.create(new BitSet());
+    fogSquares.connect(new RSet.Listener<Integer>() {
+      @Override
+      public void onAdd(Integer elem) {
+        result.update(calcOccupiedSquaresForPlayer(new BitSet()));
+      }
+      @Override
+      public void onRemove(Integer elem) {
+        result.update(calcOccupiedSquaresForPlayer(new BitSet()));
+      }
+    });
+    playerPieceSquares.connect(x -> result.update(calcOccupiedSquaresForPlayer(new BitSet())));
+    enemyPieceSquares.connect(x -> result.update(calcOccupiedSquaresForPlayer(new BitSet())));
+    result.update(calcOccupiedSquaresForPlayer(new BitSet()));
+    occupiedSquaresForPlayer = result;
+  }
+
+  private BitSet calcOccupiedSquaresForPlayer(BitSet result) {
     fogSquares.forEach(result::set);
-    pieces.forEach(p -> result.set(p.pos.get(), true));
+    result.or(playerPieceSquares.get());
+    result.or(enemyPieceSquares.get());
+    // System.out.println("calcOccupiedSquaresForPlayer, result:" + result + ", fog: " + fogSquares + ", playerPieceSquares:" + playerPieceSquares.get() + ", enemyPieceSquares:" + enemyPieceSquares.get());
     return result;
   }
 
@@ -158,7 +179,7 @@ public class GameState {
     Optional<Piece> optionalPiece = selectedPiece.get();
     if (!optionalPiece.isPresent()) return false;
     Piece piece = optionalPiece.get();
-    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), occupiedSquaresForPlayer(new BitSet()), enemyPieceSquares.get(), new BitSet());
+    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), occupiedSquaresForPlayer.get(), enemyPieceSquares.get(), new BitSet());
     if (moves.get(dest)) {
       // TODO: push any existing piece here, recursively
       selectedPieceIndex.update(-1);
