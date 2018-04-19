@@ -86,6 +86,10 @@ public class Board {
           }
         });
       }
+      @Override
+      public void onRemove(int index, Piece piece) {
+        pieceLayers.remove(index).close();
+      }
     });
   }
 

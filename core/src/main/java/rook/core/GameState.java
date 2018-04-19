@@ -18,8 +18,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkState;
-import static de.cdietze.playn_util.PointUtils.toX;
-import static de.cdietze.playn_util.PointUtils.toY;
+import static de.cdietze.playn_util.PointUtils.*;
 
 public class GameState {
 
@@ -72,6 +71,7 @@ public class GameState {
   public final Stream<Piece> enemyPieces() {
     return pieces.stream().filter(p -> p.side == Piece.Side.ENEMY);
   }
+  public final Optional<Piece> pieceAtPos(int pos) { return pieces.stream().filter(p -> p.pos.get() == pos).findFirst();}
   /**
    * List of the enemy intentions for the next move.
    * If a player would interfere (e.g. by pushing or destroying an enemy), these values need to be updated timely.
@@ -135,15 +135,17 @@ public class GameState {
     return result;
   }
 
-  public final ValueView<BitSet> occupiedSquaresForEnemy;
+  public final ValueView<BitSet> pieceSquares;
 
   {
     Value<BitSet> result = Value.create(new BitSet());
     playerPieceSquares.connect(x -> result.update(calcOccupiedSquaresForEnemy(new BitSet())));
     enemyPieceSquares.connect(x -> result.update(calcOccupiedSquaresForEnemy(new BitSet())));
     result.update(calcOccupiedSquaresForEnemy(new BitSet()));
-    occupiedSquaresForEnemy = result;
+    pieceSquares = result;
   }
+
+  public final ValueView<BitSet> occupiedSquaresForEnemy = pieceSquares;
 
   private BitSet calcOccupiedSquaresForEnemy(BitSet result) {
     result.or(playerPieceSquares.get());
@@ -164,7 +166,7 @@ public class GameState {
     } else if (clickedPieceIndex == selectedPieceIndexValue) {
       // Clicked on already selected piece -> deselect
       selectedPieceIndex.update(-1);
-    } else if (clickedPieceIndex >= 0 && pieces.get(clickedPieceIndex).side == Piece.Side.PLAYER) {
+    } else if (selectedPieceIndexValue < 0 && pieces.get(clickedPieceIndex).side == Piece.Side.PLAYER) {
       // Select piece
       selectedPieceIndex.update(clickedPieceIndex);
     } else {
@@ -179,10 +181,16 @@ public class GameState {
     Optional<Piece> optionalPiece = selectedPiece.get();
     if (!optionalPiece.isPresent()) return false;
     Piece piece = optionalPiece.get();
-    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), occupiedSquaresForPlayer.get(), enemyPieceSquares.get(), new BitSet());
+    int pos = piece.pos.get();
+    BitSet moves = PieceMoves.moves(dim, piece.type, pos, occupiedSquaresForPlayer.get(), pieceSquares.get(), new BitSet());
     if (moves.get(dest)) {
-      // TODO: push any existing piece here, recursively
       selectedPieceIndex.update(-1);
+      int posX = toX(dim, pos);
+      int posY = toY(dim, pos);
+      int destX = toX(dim, dest);
+      int destY = toY(dim, dest);
+      Direction dir = Direction.fromVector(destX - posX, destY - posY);
+      tryToPush(destX, destY, dir);
       piece.pos.update(dest);
       pieceMoved.emit(piece);
       moveEnemyPieces();
@@ -192,12 +200,31 @@ public class GameState {
     }
   }
 
+  private void tryToPush(int pushedX, int pushedY, Direction dir) {
+    if (!contains(dim, pushedX, pushedY)) return;
+    int pushedPos = toIndex(dim, pushedX, pushedY);
+    Optional<Piece> piece = pieceAtPos(pushedPos);
+    if (!piece.isPresent()) return;
+    int destX = pushedX + dir.x();
+    int destY = pushedY + dir.y();
+    // The pushed becomes the pusher
+    tryToPush(destX, destY, dir);
+    if (!contains(dim, destX, destY)) {
+      // Piece was pushed out of bounds
+      boolean removed = pieces.remove(piece.get());
+      checkState(removed);
+    } else {
+      piece.get().pos.update(toIndex(dim, destX, destY));
+    }
+  }
+
   private void moveEnemyPieces() {
     // Execute planned intentions
     moveIntentions.forEach((intention) -> {
       Piece piece = intention.piece;
       int dest = intention.dest.get();
       if (!piece.pos.get().equals(dest)) {
+        // TODO: Handle what to do when an enemy piece steps on a player piece - capture? push?
         piece.pos.update(dest);
         pieceMoved.emit(piece);
       }
