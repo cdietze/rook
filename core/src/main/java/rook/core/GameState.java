@@ -71,29 +71,40 @@ public class GameState {
     this.random = random;
     this.log = log;
     fogSquares.addAll(IntStream.range(0, dim.width() * dim.height()).boxed().collect(Collectors.toList()));
+    initRevealFogListener();
+    initUpdatePiecesBitSetsListener();
+  }
+
+  private void initRevealFogListener() {
+    ValueView.Listener<Integer> posListener = (pos, oldPos) -> revealBorderingSquares(pos);
     pieces.connectNotify(new RList.Listener<Piece>() {
       @Override
       public void onAdd(Piece piece) {
         if (piece.side == Piece.Side.PLAYER) {
-          revealBorderingSquares(piece.pos.get());
+          piece.pos.connectNotify(posListener);
         }
       }
+      @Override
+      public void onRemove(Piece piece) {
+        piece.pos.disconnect(posListener);
+      }
     });
-    pieceMoved
-            .filter(p -> p.side == Piece.Side.PLAYER)
-            .connect(piece -> revealBorderingSquares(piece.pos.get()));
+  }
 
+  private void initUpdatePiecesBitSetsListener() {
+    // TODO: optimization: could only update pieces or enemy bitset depending on which piece moved
+    ValueView.Listener<Integer> posListener = (pos, oldPos) -> updatePiecesBitSets();
     pieces.connectNotify(new RList.Listener<Piece>() {
       @Override
       public void onAdd(Piece piece) {
-        updatePiecesBitSets();
+        piece.pos.connectNotify(posListener);
       }
       @Override
-      public void onRemove(Piece elem) {
+      public void onRemove(Piece piece) {
+        piece.pos.disconnect(posListener);
         updatePiecesBitSets();
       }
     });
-    pieceMoved.connect(piece -> updatePiecesBitSets());
   }
 
   public final ValueView<BitSet> occupiedSquaresForPlayer;
