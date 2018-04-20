@@ -10,6 +10,7 @@ import playn.scene.GroupLayer;
 import playn.scene.ImageLayer;
 import playn.scene.Layer;
 import playn.scene.Pointer;
+import react.IntValue;
 import react.RList;
 import react.RSet;
 import react.Slot;
@@ -36,6 +37,12 @@ public class Board {
   public final GroupLayer rootLayer = new GroupLayer();
   private final List<Layer> squareLayers;
   private final List<Layer> pieceLayers = new ArrayList<>();
+
+  /**
+   * The index of the currently selected piece in the [pieces] list.
+   * Or -1 if nothing is selected.
+   */
+  private final IntValue selectedPieceIndex = new IntValue(-1);
 
   public Board(final BoardScreen screen) {
     this.screen = screen;
@@ -128,7 +135,7 @@ public class Board {
   }
 
   private void initHighlightSelectedPieceListener() {
-    state.selectedPieceIndex.connectNotify((value, oldValue) -> {
+    selectedPieceIndex.connectNotify((value, oldValue) -> {
       if (oldValue != null && oldValue >= 0) pieceLayers.get(oldValue).setTint(Colors.WHITE);
       if (value >= 0) pieceLayers.get(value).setTint(Colors.YELLOW);
     });
@@ -169,7 +176,7 @@ public class Board {
         if (pos < 0) return;
         Layer squareLayer = squareLayers.get(pos);
         screen.iface.anim.tweenAlpha(squareLayer).from(.5f).to(1f).in(500);
-        state.clickOnSquare(pos);
+        clickOnSquare(pos);
       }
 
       private int hitPos(Pointer.Interaction iact) {
@@ -185,5 +192,25 @@ public class Board {
             .setSize(1f, 1f)
             .setOrigin(Layer.Origin.CENTER)
             .setDepth(Depths.PIECES);
+  }
+
+  private void clickOnSquare(int pos) {
+    int clickedPieceIndex = state.pieceIndexAtPos(pos);
+    int selectedPieceIndexValue = selectedPieceIndex.get();
+    if (clickedPieceIndex < 0 && selectedPieceIndexValue < 0) {
+      // Clicked on no piece while no piece is selected -> ignore
+    } else if (clickedPieceIndex == selectedPieceIndexValue) {
+      // Clicked on already selected piece -> deselect
+      selectedPieceIndex.update(-1);
+    } else if (selectedPieceIndexValue < 0 && state.pieces.get(clickedPieceIndex).side == Piece.Side.PLAYER) {
+      // Select piece
+      selectedPieceIndex.update(clickedPieceIndex);
+    } else {
+      // Clicked on destination, try to move
+      Piece piece = state.pieces.get(selectedPieceIndexValue);
+      if (state.tryMoveSelectedPiece(piece, pos)) {
+        this.selectedPieceIndex.update(-1);
+      }
+    }
   }
 }

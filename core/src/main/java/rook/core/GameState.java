@@ -34,17 +34,6 @@ public class GameState {
 
   public final Signal<Piece> pieceMoved = Signal.create();
 
-  /**
-   * The index of the currently selected piece in the [pieces] list.
-   * Or -1 if nothing is selected.
-   */
-  public final IntValue selectedPieceIndex = new IntValue(-1);
-
-  public final ValueView<Optional<Piece>> selectedPiece = selectedPieceIndex.map(pieceIndex -> {
-    if (pieceIndex < 0) return Optional.empty();
-    return Optional.of(pieces.get(pieceIndex));
-  });
-
   public final Value<BitSet> playerPieceSquares = Value.create(calcPlayerPieceSquares(new BitSet()));
   public final Value<BitSet> enemyPieceSquares = Value.create(calcEnemyPieceSquares(new BitSet()));
 
@@ -158,33 +147,10 @@ public class GameState {
     return Iterables.indexOf(pieces, piece -> piece.pos.get() == pos);
   }
 
-  public void clickOnSquare(int pos) {
-    int clickedPieceIndex = pieceIndexAtPos(pos);
-    int selectedPieceIndexValue = selectedPieceIndex.get();
-    if (clickedPieceIndex < 0 && selectedPieceIndexValue < 0) {
-      // Clicked on no piece while no piece is selected -> ignore
-    } else if (clickedPieceIndex == selectedPieceIndexValue) {
-      // Clicked on already selected piece -> deselect
-      selectedPieceIndex.update(-1);
-    } else if (selectedPieceIndexValue < 0 && pieces.get(clickedPieceIndex).side == Piece.Side.PLAYER) {
-      // Select piece
-      selectedPieceIndex.update(clickedPieceIndex);
-    } else {
-      // Clicked on destination, try to move
-      //noinspection ConstantConditions
-      checkState(selectedPieceIndexValue >= 0);
-      tryMoveSelectedPiece(pos);
-    }
-  }
-
-  public boolean tryMoveSelectedPiece(int dest) {
-    Optional<Piece> optionalPiece = selectedPiece.get();
-    if (!optionalPiece.isPresent()) return false;
-    Piece piece = optionalPiece.get();
+  public boolean tryMoveSelectedPiece(Piece piece, int dest) {
     int pos = piece.pos.get();
     BitSet moves = PieceMoves.moves(dim, piece.type, pos, occupiedSquaresForPlayer.get(), pieceSquares.get(), new BitSet());
     if (moves.get(dest)) {
-      selectedPieceIndex.update(-1);
       int posX = toX(dim, pos);
       int posY = toY(dim, pos);
       int destX = toX(dim, dest);
