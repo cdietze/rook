@@ -240,8 +240,7 @@ public class GameState {
     // Make intentions for next move
     moveIntentions.clear();
     enemyPieces().forEach(piece -> {
-      BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), occupiedSquaresForEnemy.get(), playerPieceSquares.get(), new BitSet());
-      OptionalInt moveDest = BitSetUtils.randomElement(random, moves);
+      OptionalInt moveDest = pickEnemyMove(piece);
       if (moveDest.isPresent()) {
         int x = toX(dim, piece.pos.get());
         int y = toY(dim, piece.pos.get());
@@ -254,15 +253,22 @@ public class GameState {
         moveIntentions.add(new MoveIntention(this, piece, dir, moveLength));
       }
     });
-
     log.debug("Made intentions for next move: " + moveIntentions);
+  }
+
+  private OptionalInt pickEnemyMove(Piece piece) {
+    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), occupiedSquaresForEnemy.get(), playerPieceSquares.get(), new BitSet());
+    OptionalInt playerKing = BitSetUtils.findFirst(moves, i -> {
+      Optional<Piece> t = pieceAtPos(i);
+      return t.isPresent() && t.get().side == Piece.Side.PLAYER && t.get().type == Piece.Type.KING;
+    });
+    if (playerKing.isPresent()) return playerKing;
+    return BitSetUtils.randomElement(random, moves);
   }
 
   private void revealBorderingSquares(int pos) {
     fogSquares.remove(pos);
     BitSet set = PointUtils.borderingNeighbors(dim, pos, new BitSet());
-    for (int i = set.nextSetBit(0); i >= 0; i = set.nextSetBit(i + 1)) {
-      fogSquares.remove(i);
-    }
+    BitSetUtils.forEach(set, fogSquares::remove);
   }
 }
