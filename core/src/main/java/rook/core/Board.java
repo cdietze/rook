@@ -10,15 +10,16 @@ import playn.scene.GroupLayer;
 import playn.scene.ImageLayer;
 import playn.scene.Layer;
 import playn.scene.Pointer;
-import react.IntValue;
 import react.RList;
 import react.RSet;
 import react.Slot;
+import react.Value;
 import tripleplay.util.Colors;
 import tripleplay.util.Layers;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static de.cdietze.playn_util.PointUtils.toX;
 import static de.cdietze.playn_util.PointUtils.toY;
@@ -38,11 +39,7 @@ public class Board {
   private final List<Layer> squareLayers;
   private final List<Layer> pieceLayers = new ArrayList<>();
 
-  /**
-   * The index of the currently selected piece in the [pieces] list.
-   * Or -1 if nothing is selected.
-   */
-  private final IntValue selectedPieceIndex = new IntValue(-1);
+  private final Value<Optional<Piece>> selectedPiece = Value.create(Optional.empty());
 
   public Board(final BoardScreen screen) {
     this.screen = screen;
@@ -135,9 +132,15 @@ public class Board {
   }
 
   private void initHighlightSelectedPieceListener() {
-    selectedPieceIndex.connectNotify((value, oldValue) -> {
-      if (oldValue != null && oldValue >= 0) pieceLayers.get(oldValue).setTint(Colors.WHITE);
-      if (value >= 0) pieceLayers.get(value).setTint(Colors.YELLOW);
+    selectedPiece.connectNotify((value, oldValue) -> {
+      if (oldValue != null && oldValue.isPresent()) {
+        int oldIndex = state.pieces.indexOf(oldValue.get());
+        if (oldIndex >= 0) pieceLayers.get(oldIndex).setTint(Colors.WHITE);
+      }
+      if (value.isPresent()) {
+        int index = state.pieces.indexOf(value.get());
+        if (index >= 0) pieceLayers.get(index).setTint(Colors.YELLOW);
+      }
     });
   }
 
@@ -196,20 +199,23 @@ public class Board {
 
   private void clickOnSquare(int pos) {
     int clickedPieceIndex = state.pieceIndexAtPos(pos);
-    int selectedPieceIndexValue = selectedPieceIndex.get();
-    if (clickedPieceIndex < 0 && selectedPieceIndexValue < 0) {
-      // Clicked on no piece while no piece is selected -> ignore
-    } else if (clickedPieceIndex == selectedPieceIndexValue) {
-      // Clicked on already selected piece -> deselect
-      selectedPieceIndex.update(-1);
-    } else if (selectedPieceIndexValue < 0 && state.pieces.get(clickedPieceIndex).side == Piece.Side.PLAYER) {
-      // Select piece
-      selectedPieceIndex.update(clickedPieceIndex);
+    if (selectedPiece.get().isPresent()) {
+      Piece piece = selectedPiece.get().get();
+      if (piece.pos.get() == pos) {
+        // Clicked on already selected piece -> deselect
+        selectedPiece.update(Optional.empty());
+      } else {
+        // Clicked on destination, try to move
+        if (state.tryMoveSelectedPiece(piece, pos)) {
+          selectedPiece.update(Optional.empty());
+        }
+      }
     } else {
-      // Clicked on destination, try to move
-      Piece piece = state.pieces.get(selectedPieceIndexValue);
-      if (state.tryMoveSelectedPiece(piece, pos)) {
-        this.selectedPieceIndex.update(-1);
+      if (clickedPieceIndex >= 0) {
+        // Select piece
+        selectedPiece.update(Optional.of(state.pieces.get(clickedPieceIndex)));
+      } else {
+        // Clicked on no piece while no piece is selected -> ignore
       }
     }
   }
