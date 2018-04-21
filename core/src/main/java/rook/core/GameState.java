@@ -1,5 +1,6 @@
 package rook.core;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
@@ -281,14 +282,24 @@ class PieceMovedEvent {
    */
   public final Piece piece;
   public final int oldPos;
-  public final ImmutableList<PiecePushedEvent> pushedEvents;
   public final Optional<Piece> capture;
+  public final ImmutableList<PiecePushedEvent> pushedEvents;
 
   PieceMovedEvent(Piece piece, int oldPos, ImmutableList<PiecePushedEvent> pushedEvents, Optional<Piece> capture) {
     this.piece = piece;
     this.oldPos = oldPos;
     this.pushedEvents = pushedEvents;
     this.capture = capture;
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+            .add("piece", piece)
+            .add("oldPos", oldPos)
+            .add("capture", capture)
+            .add("pushedEvents", pushedEvents)
+            .toString();
   }
 }
 
@@ -302,5 +313,13 @@ class PiecePushedEvent {
   public PiecePushedEvent(Piece piece, int oldPos) {
     this.piece = piece;
     this.oldPos = oldPos;
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+            .add("piece", piece)
+            .add("oldPos", oldPos)
+            .toString();
   }
 }

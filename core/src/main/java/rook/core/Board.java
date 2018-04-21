@@ -16,11 +16,9 @@ import react.Value;
 import tripleplay.util.Colors;
 import tripleplay.util.Layers;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
-import static de.cdietze.playn_util.PointUtils.toX;
-import static de.cdietze.playn_util.PointUtils.toY;
+import static de.cdietze.playn_util.PointUtils.*;
 
 public class Board {
   interface Depths {
@@ -35,7 +33,10 @@ public class Board {
   private final GameState state;
   public final GroupLayer rootLayer = new GroupLayer();
   private final List<Layer> squareLayers;
-  private final List<Layer> pieceLayers = new ArrayList<>();
+  /**
+   * Maps pieceId -> pieceLayer
+   */
+  private final Map<Integer, Layer> pieceLayers = new HashMap<>();
 
   private final Value<Integer> selectedPieceId = Value.create(-1);
 
@@ -48,7 +49,8 @@ public class Board {
     rootLayer.setOrigin(Layer.Origin.CENTER);
     rootLayer.addAt(Layers.solid(0xff222222, state.dim.width(), state.dim.height()).setOrigin(Layer.Origin.CENTER).setDepth(-10), rootLayer.width() / 2, rootLayer.height() / 2);
     this.squareLayers = createSquareLayers();
-    initPieceLayersListener();
+    initAddPieceListener();
+    initMovePieceListener();
     initIntentionLayersListener();
     initHighlightSelectedPieceListener();
     initFogOfWar();
@@ -72,7 +74,7 @@ public class Board {
     return squareLayersBuilder.build();
   }
 
-  private void initPieceLayersListener() {
+  private void initAddPieceListener() {
     state.pieces.connectNotify(new RList.Listener<Piece>() {
       @Override
       public void onAdd(Piece piece) {
@@ -80,20 +82,32 @@ public class Board {
         int y = toY(state.dim, piece.pos);
         final Layer pieceLayer = createPieceLayer(screen.game.images.pieceImage(piece.side, piece.type))
                 .setTranslation(x + .5f, y + .5f);
-        pieceLayers.add(pieceLayer);
+        pieceLayers.put(piece.id, pieceLayer);
         rootLayer.add(pieceLayer);
       }
-      @Override
-      public void onRemove(int index, Piece piece) {
-        pieceLayers.remove(index).close();
-      }
+    });
+  }
 
-      @Override
-      public void onSet(int index, Piece newPiece) {
-        int x = toX(state.dim, newPiece.pos);
-        int y = toY(state.dim, newPiece.pos);
-        pieceLayers.get(index).setTranslation(x + .5f, y + .5f);
-      }
+  private void initMovePieceListener() {
+    // TODO: use pretty animations
+    state.pieceMoved.connect(e -> {
+      plat.log().debug("Handling PieceMovedEvent", "event", e);
+      // Handle capture
+      e.capture.ifPresent(piece -> pieceLayers.remove(piece.id).close());
+      // Handle pushes
+      e.pushedEvents.forEach(push -> {
+        if (!contains(state.dim, push.piece.pos)) {
+          pieceLayers.remove(push.piece.id).close();
+        } else {
+          int x = toX(state.dim, push.piece.pos);
+          int y = toY(state.dim, push.piece.pos);
+          pieceLayers.get(push.piece.id).setTranslation(x + .5f, y + .5f);
+        }
+      });
+      // Handle move
+      int x = toX(state.dim, e.piece.pos);
+      int y = toY(state.dim, e.piece.pos);
+      pieceLayers.get(e.piece.id).setTranslation(x + .5f, y + .5f);
     });
   }
 
@@ -135,12 +149,10 @@ public class Board {
   private void initHighlightSelectedPieceListener() {
     selectedPieceId.connectNotify((pieceId, oldPieceId) -> {
       if (oldPieceId != null && oldPieceId >= 0) {
-        int oldIndex = state.pieceIndexById(oldPieceId);
-        if (oldIndex >= 0) pieceLayers.get(oldIndex).setTint(Colors.WHITE);
+        Optional.ofNullable(pieceLayers.get(oldPieceId)).ifPresent(l -> l.setTint(Colors.WHITE));
       }
       if (pieceId >= 0) {
-        int index = state.pieceIndexById(pieceId);
-        if (index >= 0) pieceLayers.get(index).setTint(Colors.YELLOW);
+        Optional.ofNullable(pieceLayers.get(pieceId)).ifPresent(l -> l.setTint(Colors.YELLOW));
       }
     });
   }
