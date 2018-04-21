@@ -108,7 +108,7 @@ public class Board {
         int posX = toX(state.dim, piece.pos);
         int posY = toY(state.dim, piece.pos);
         // TODO update gfx when intention.dest changes
-        int dest = intention.dest.get();
+        int dest = intention.calcDest(state).get();
         int destX = toX(state.dim, dest);
         int destY = toY(state.dim, dest);
         Layer intentionLayer = new Layer() {
