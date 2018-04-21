@@ -1,6 +1,8 @@
 package rook.core;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.Immutable;
 import de.cdietze.playn_util.PointUtils;
 import playn.core.Log;
 import pythagoras.i.Dimension;
@@ -32,7 +34,7 @@ public class GameState {
 
   public final RSet<Integer> fogSquares = RSet.create();
 
-  public final Signal<Piece> pieceMoved = Signal.create();
+  public final Signal<PieceMovedEvent> pieceMoved = Signal.create();
 
   public final Value<BitSet> playerPieceSquares = Value.create(calcPlayerPieceSquares(new BitSet()));
   public final Value<BitSet> enemyPieceSquares = Value.create(calcEnemyPieceSquares(new BitSet()));
@@ -181,34 +183,41 @@ public class GameState {
       int destX = toX(dim, dest);
       int destY = toY(dim, dest);
       Direction dir = Direction.fromVector(destX - posX, destY - posY);
-      tryToPush(destX, destY, dir);
+      ImmutableList<PiecePushedEvent> pushedEvents = calcPushList(destX, destY, dir, ImmutableList.builder()).build();
       Piece newPiece = piece.copy().pos(dest).build();
-      pieces.set(pieceIndex, newPiece);
-      pieceMoved.emit(newPiece);
+      PieceMovedEvent movedEvent = new PieceMovedEvent(newPiece, piece.pos, pushedEvents);
+      applyPieceMovedEvent(movedEvent);
+      pieceMoved.emit(movedEvent);
       moveEnemyPieces();
       return true;
     } else {
       return false;
     }
   }
+  
+  private void applyPieceMovedEvent(PieceMovedEvent movedEvent) {
+    movedEvent.pushedEvents.forEach(e -> {
+      if (!contains(dim, e.piece.pos)) {
+        pieces.remove(pieceIndexById(e.piece.id));
+      } else {
+        pieces.set(pieceIndexById(e.piece.id), e.piece);
+      }
+    });
+    pieces.set(pieceIndexById(movedEvent.piece.id), movedEvent.piece);
+  }
 
-  private void tryToPush(int pushedX, int pushedY, Direction dir) {
-    if (!contains(dim, pushedX, pushedY)) return;
+  private ImmutableList.Builder<PiecePushedEvent> calcPushList(int pushedX, int pushedY, Direction dir, ImmutableList.Builder<PiecePushedEvent> result) {
+    if (!contains(dim, pushedX, pushedY)) return result;
     int pushedPos = toIndex(dim, pushedX, pushedY);
-    int pieceIndex = pieceIndexByPos(pushedPos);
-    if (pieceIndex < 0) return;
+    Optional<Piece> piece = pieceAtPos(pushedPos);
+    if (!piece.isPresent()) return result;
     int destX = pushedX + dir.x();
     int destY = pushedY + dir.y();
-    // The pushed becomes the pusher
-    tryToPush(destX, destY, dir);
-    if (!contains(dim, destX, destY)) {
-      // Piece was pushed out of bounds
-      pieces.remove(pieceIndex);
-    } else {
-      Piece newPiece = pieces.get(pieceIndex).copy().pos(toIndex(dim, destX, destY)).build();
-      pieces.set(pieceIndex, newPiece);
-      pieceMoved.emit(newPiece);
-    }
+    Piece pushedPiece = piece.get().copy().pos(toIndex(dim, destX, destY)).build();
+    result.add(new PiecePushedEvent(pushedPiece, pushedPos));
+    // The pushed may become the pusher
+    calcPushList(destX, destY, dir, result);
+    return result;
   }
 
   private void moveEnemyPieces() {
@@ -227,7 +236,7 @@ public class GameState {
         // pieces index may have changed in the meantime
         int pieceIndex2 = pieceIndexById(intention.pieceId);
         pieces.set(pieceIndex2, newPiece);
-        pieceMoved.emit(newPiece);
+        pieceMoved.emit(new PieceMovedEvent(newPiece, piece.pos, ImmutableList.of()));
       }
     });
 
@@ -264,5 +273,34 @@ public class GameState {
     fogSquares.remove(pos);
     BitSet set = PointUtils.borderingNeighbors(dim, pos, new BitSet());
     BitSetUtils.forEach(set, fogSquares::remove);
+  }
+}
+
+@Immutable
+class PieceMovedEvent {
+  /**
+   * The piece after the move
+   */
+  public final Piece piece;
+  public final int oldPos;
+  public final ImmutableList<PiecePushedEvent> pushedEvents;
+
+  PieceMovedEvent(Piece piece, int oldPos, ImmutableList<PiecePushedEvent> pushedEvents) {
+    this.piece = piece;
+    this.oldPos = oldPos;
+    this.pushedEvents = pushedEvents;
+  }
+}
+
+@Immutable
+class PiecePushedEvent {
+  /**
+   * The piece after the push
+   */
+  public final Piece piece;
+  public final int oldPos;
+  public PiecePushedEvent(Piece piece, int oldPos) {
+    this.piece = piece;
+    this.oldPos = oldPos;
   }
 }
