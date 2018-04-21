@@ -89,7 +89,7 @@ public class Board {
   }
 
   private void initMovePieceListener() {
-    // TODO: use pretty animations
+    // TODO: use more pretty animations
     state.pieceMoved.connect(e -> {
       plat.log().debug("Handling PieceMovedEvent", "event", e);
       // Handle capture
@@ -101,13 +101,14 @@ public class Board {
         } else {
           int x = toX(state.dim, push.piece.pos);
           int y = toY(state.dim, push.piece.pos);
-          pieceLayers.get(push.piece.id).setTranslation(x + .5f, y + .5f);
+          screen.iface.anim.tweenTranslation(
+                  pieceLayers.get(push.piece.id)).to(x + .5f, y + .5f).in(200).easeInOut();
         }
       });
       // Handle move
       int x = toX(state.dim, e.piece.pos);
       int y = toY(state.dim, e.piece.pos);
-      pieceLayers.get(e.piece.id).setTranslation(x + .5f, y + .5f);
+      screen.iface.anim.tweenTranslation(pieceLayers.get(e.piece.id)).to(x + .5f, y + .5f).in(200).easeInOut();
     });
   }
 
