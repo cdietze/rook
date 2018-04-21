@@ -12,7 +12,6 @@ import playn.scene.Layer;
 import playn.scene.Pointer;
 import react.RList;
 import react.RSet;
-import react.Slot;
 import react.Value;
 import tripleplay.util.Colors;
 import tripleplay.util.Layers;
@@ -78,21 +77,23 @@ public class Board {
     state.pieces.connectNotify(new RList.Listener<Piece>() {
       @Override
       public void onAdd(Piece piece) {
-        final Layer pieceLayer = createPieceLayer(screen.game.images.pieceImage(piece.side, piece.type));
+        int x = toX(state.dim, piece.pos);
+        int y = toY(state.dim, piece.pos);
+        final Layer pieceLayer = createPieceLayer(screen.game.images.pieceImage(piece.side, piece.type))
+                .setTranslation(x + .5f, y + .5f);
         pieceLayers.add(pieceLayer);
         rootLayer.add(pieceLayer);
-        piece.pos.connectNotify(new Slot<Integer>() {
-          @Override
-          public void onEmit(Integer pos) {
-            int x = toX(state.dim, pos);
-            int y = toY(state.dim, pos);
-            pieceLayer.setTranslation(x + .5f, y + .5f);
-          }
-        });
       }
       @Override
       public void onRemove(int index, Piece piece) {
         pieceLayers.remove(index).close();
+      }
+
+      @Override
+      public void onSet(int index, Piece newPiece) {
+        int x = toX(state.dim, newPiece.pos);
+        int y = toY(state.dim, newPiece.pos);
+        pieceLayers.get(index).setTranslation(x + .5f, y + .5f);
       }
     });
   }
@@ -104,8 +105,9 @@ public class Board {
       float height = state.dim.height();
       @Override
       public void onAdd(MoveIntention intention) {
-        int posX = toX(state.dim, intention.piece.pos.get());
-        int posY = toY(state.dim, intention.piece.pos.get());
+        Piece piece = state.pieceById(intention.pieceId);
+        int posX = toX(state.dim, piece.pos);
+        int posY = toY(state.dim, piece.pos);
         // TODO update gfx when intention.dest changes
         int dest = intention.dest.get();
         int destX = toX(state.dim, dest);
@@ -198,10 +200,10 @@ public class Board {
   }
 
   private void clickOnSquare(int pos) {
-    int clickedPieceIndex = state.pieceIndexAtPos(pos);
+    int clickedPieceIndex = state.pieceIndexByPos(pos);
     if (selectedPiece.get().isPresent()) {
       Piece piece = selectedPiece.get().get();
-      if (piece.pos.get() == pos) {
+      if (piece.pos == pos) {
         // Clicked on already selected piece -> deselect
         selectedPiece.update(Optional.empty());
       } else {

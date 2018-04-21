@@ -43,13 +43,13 @@ public class GameState {
   }
 
   private BitSet calcPlayerPieceSquares(BitSet result) {
-    pieces.stream().filter(p -> p.side == Piece.Side.PLAYER).forEach(p -> result.set(p.pos.get()));
+    pieces.stream().filter(p -> p.side == Piece.Side.PLAYER).forEach(p -> result.set(p.pos));
     // System.out.println("calcPlayerPieceSquares, result:" + result);
     return result;
   }
 
   private BitSet calcEnemyPieceSquares(BitSet result) {
-    pieces.stream().filter(p -> p.side == Piece.Side.ENEMY).forEach(p -> result.set(p.pos.get()));
+    pieces.stream().filter(p -> p.side == Piece.Side.ENEMY).forEach(p -> result.set(p.pos));
     // System.out.println("calcEnemyPieceSquares, result:" + result);
     return result;
   }
@@ -60,7 +60,8 @@ public class GameState {
   public final Stream<Piece> enemyPieces() {
     return pieces.stream().filter(p -> p.side == Piece.Side.ENEMY);
   }
-  public final Optional<Piece> pieceAtPos(int pos) { return pieces.stream().filter(p -> p.pos.get() == pos).findFirst();}
+  public final Optional<Piece> pieceAtPos(int pos) { return pieces.stream().filter(p -> p.pos == pos).findFirst();}
+
   /**
    * List of the enemy intentions for the next move.
    * If a player would interfere (e.g. by pushing or destroying an enemy), these values need to be updated timely.
@@ -76,32 +77,36 @@ public class GameState {
   }
 
   private void initRevealFogListener() {
-    ValueView.Listener<Integer> posListener = (pos, oldPos) -> revealBorderingSquares(pos);
     pieces.connectNotify(new RList.Listener<Piece>() {
       @Override
       public void onAdd(Piece piece) {
         if (piece.side == Piece.Side.PLAYER) {
-          piece.pos.connectNotify(posListener);
+          revealBorderingSquares(piece.pos);
         }
       }
+
       @Override
-      public void onRemove(Piece piece) {
-        piece.pos.disconnect(posListener);
+      public void onSet(int index, Piece piece) {
+        if (piece.side == Piece.Side.PLAYER) {
+          revealBorderingSquares(piece.pos);
+        }
       }
     });
   }
 
   private void initUpdatePiecesBitSetsListener() {
     // TODO: optimization: could only update pieces or enemy bitset depending on which piece moved
-    ValueView.Listener<Integer> posListener = (pos, oldPos) -> updatePiecesBitSets();
     pieces.connectNotify(new RList.Listener<Piece>() {
       @Override
       public void onAdd(Piece piece) {
-        piece.pos.connectNotify(posListener);
+        updatePiecesBitSets();
       }
       @Override
       public void onRemove(Piece piece) {
-        piece.pos.disconnect(posListener);
+        updatePiecesBitSets();
+      }
+      @Override
+      public void onSet(int index, Piece newElem) {
         updatePiecesBitSets();
       }
     });
@@ -154,22 +159,32 @@ public class GameState {
     return result;
   }
 
-  public int pieceIndexAtPos(final int pos) {
-    return Iterables.indexOf(pieces, piece -> piece.pos.get() == pos);
+  public int pieceIndexById(final int pieceId) {
+    return Iterables.indexOf(pieces, piece -> piece.id == pieceId);
+  }
+
+  public Piece pieceById(final int pieceId) {
+    return pieces.get(pieceIndexById(pieceId));
+  }
+
+  public int pieceIndexByPos(final int pos) {
+    return Iterables.indexOf(pieces, piece -> piece.pos == pos);
   }
 
   public boolean tryMoveSelectedPiece(Piece piece, int dest) {
-    int pos = piece.pos.get();
-    BitSet moves = PieceMoves.moves(dim, piece.type, pos, occupiedSquaresForPlayer.get(), pieceSquares.get(), new BitSet());
+    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos, occupiedSquaresForPlayer.get(), pieceSquares.get(), new BitSet());
     if (moves.get(dest)) {
-      int posX = toX(dim, pos);
-      int posY = toY(dim, pos);
+      int pieceIndex = pieces.indexOf(piece);
+      checkState(pieceIndex >= 0);
+      int posX = toX(dim, piece.pos);
+      int posY = toY(dim, piece.pos);
       int destX = toX(dim, dest);
       int destY = toY(dim, dest);
       Direction dir = Direction.fromVector(destX - posX, destY - posY);
       tryToPush(destX, destY, dir);
-      piece.pos.update(dest);
-      pieceMoved.emit(piece);
+      Piece newPiece = piece.copy().pos(dest).build();
+      pieces.set(pieceIndex, newPiece);
+      pieceMoved.emit(newPiece);
       moveEnemyPieces();
       return true;
     } else {
@@ -180,36 +195,36 @@ public class GameState {
   private void tryToPush(int pushedX, int pushedY, Direction dir) {
     if (!contains(dim, pushedX, pushedY)) return;
     int pushedPos = toIndex(dim, pushedX, pushedY);
-    Optional<Piece> piece = pieceAtPos(pushedPos);
-    if (!piece.isPresent()) return;
+    int pieceIndex = pieceIndexByPos(pushedPos);
+    if (pieceIndex < 0) return;
     int destX = pushedX + dir.x();
     int destY = pushedY + dir.y();
     // The pushed becomes the pusher
     tryToPush(destX, destY, dir);
     if (!contains(dim, destX, destY)) {
       // Piece was pushed out of bounds
-      boolean removed = pieces.remove(piece.get());
-      checkState(removed);
+      pieces.remove(pieceIndex);
     } else {
-      piece.get().pos.update(toIndex(dim, destX, destY));
-      pieceMoved.emit(piece.get());
+      Piece newPiece = pieces.get(pieceIndex).copy().pos(toIndex(dim, destX, destY)).build();
+      pieces.set(pieceIndex, newPiece);
+      pieceMoved.emit(newPiece);
     }
   }
 
   private void moveEnemyPieces() {
     // Execute planned intentions
     moveIntentions.forEach((intention) -> {
-      Piece piece = intention.piece;
+      int pieceIndex = pieceIndexById(intention.pieceId);
+      Piece piece = pieces.get(pieceIndex);
       int dest = intention.dest.get();
-      if (!piece.pos.get().equals(dest)) {
-        Optional<Piece> pieceAtDest = pieceAtPos(dest);
-        if (pieceAtDest.isPresent()) {
-          // Capture this piece, i.e. remove it
-          boolean removed = pieces.remove(pieceAtDest.get());
-          checkState(removed);
+      if (piece.pos != dest) {
+        int pieceAtDestIndex = pieceIndexByPos(dest);
+        if (pieceAtDestIndex >= 0) {
+          pieces.remove(pieceAtDestIndex);
         }
-        piece.pos.update(dest);
-        pieceMoved.emit(piece);
+        Piece newPiece = piece.copy().pos(dest).build();
+        pieces.set(pieceIndex, newPiece);
+        pieceMoved.emit(newPiece);
       }
       intention.close();
     });
@@ -219,22 +234,22 @@ public class GameState {
     enemyPieces().forEach(piece -> {
       OptionalInt moveDest = pickEnemyMove(piece);
       if (moveDest.isPresent()) {
-        int x = toX(dim, piece.pos.get());
-        int y = toY(dim, piece.pos.get());
+        int x = toX(dim, piece.pos);
+        int y = toY(dim, piece.pos);
         int destX = toX(dim, moveDest.getAsInt());
         int destY = toY(dim, moveDest.getAsInt());
         int vecX = destX - x;
         int vecY = destY - y;
         int moveLength = Math.max(Math.abs(vecX), Math.abs(vecY));
         Direction dir = Direction.fromVector(destX - x, destY - y);
-        moveIntentions.add(new MoveIntention(this, piece, dir, moveLength));
+        moveIntentions.add(new MoveIntention(this, piece.id, dir, moveLength));
       }
     });
     log.debug("Made intentions for next move: " + moveIntentions);
   }
 
   private OptionalInt pickEnemyMove(Piece piece) {
-    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos.get(), occupiedSquaresForEnemy.get(), playerPieceSquares.get(), new BitSet());
+    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos, occupiedSquaresForEnemy.get(), playerPieceSquares.get(), new BitSet());
     OptionalInt playerKing = BitSetUtils.findFirst(moves, i -> {
       Optional<Piece> t = pieceAtPos(i);
       return t.isPresent() && t.get().side == Piece.Side.PLAYER && t.get().type == Piece.Type.KING;
