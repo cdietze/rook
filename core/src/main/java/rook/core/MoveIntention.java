@@ -18,7 +18,7 @@ public class MoveIntention {
     this.dir = dir;
     this.moveLength = moveLength;
   }
-  
+
   public Optional<Integer> calcDest(GameState state) {
     BitSet opponent = new BitSet();
     state.playerPieces().forEach(p -> opponent.set(p.pos));

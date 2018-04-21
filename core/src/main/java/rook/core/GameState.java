@@ -194,7 +194,7 @@ public class GameState {
       return false;
     }
   }
-  
+
   private void applyPieceMovedEvent(PieceMovedEvent movedEvent) {
     movedEvent.pushedEvents.forEach(e -> {
       if (!contains(dim, e.piece.pos)) {
