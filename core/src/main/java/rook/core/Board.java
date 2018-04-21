@@ -90,10 +90,15 @@ public class Board {
 
   private void initMovePieceListener() {
     // TODO: use more pretty animations
+    // TODO: queue animations up: animate events one after another
     state.pieceMoved.connect(e -> {
       plat.log().debug("Handling PieceMovedEvent", "event", e);
       // Handle capture
-      e.capture.ifPresent(piece -> pieceLayers.remove(piece.id).close());
+      e.capture.ifPresent(piece -> {
+        Layer l = pieceLayers.remove(piece.id);
+        screen.iface.anim.tweenAlpha(l).to(0f).then().dispose(l);
+        screen.iface.anim.tweenScale(l).to(3f);
+      });
       // Handle pushes
       e.pushedEvents.forEach(push -> {
         if (!contains(state.dim, push.piece.pos)) {
