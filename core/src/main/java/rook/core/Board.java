@@ -18,7 +18,6 @@ import tripleplay.util.Layers;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import static de.cdietze.playn_util.PointUtils.toX;
 import static de.cdietze.playn_util.PointUtils.toY;
@@ -38,7 +37,7 @@ public class Board {
   private final List<Layer> squareLayers;
   private final List<Layer> pieceLayers = new ArrayList<>();
 
-  private final Value<Optional<Piece>> selectedPiece = Value.create(Optional.empty());
+  private final Value<Integer> selectedPieceId = Value.create(-1);
 
   public Board(final BoardScreen screen) {
     this.screen = screen;
@@ -134,13 +133,13 @@ public class Board {
   }
 
   private void initHighlightSelectedPieceListener() {
-    selectedPiece.connectNotify((value, oldValue) -> {
-      if (oldValue != null && oldValue.isPresent()) {
-        int oldIndex = state.pieces.indexOf(oldValue.get());
+    selectedPieceId.connectNotify((pieceId, oldPieceId) -> {
+      if (oldPieceId != null && oldPieceId >= 0) {
+        int oldIndex = state.pieceIndexById(oldPieceId);
         if (oldIndex >= 0) pieceLayers.get(oldIndex).setTint(Colors.WHITE);
       }
-      if (value.isPresent()) {
-        int index = state.pieces.indexOf(value.get());
+      if (pieceId >= 0) {
+        int index = state.pieceIndexById(pieceId);
         if (index >= 0) pieceLayers.get(index).setTint(Colors.YELLOW);
       }
     });
@@ -201,21 +200,21 @@ public class Board {
 
   private void clickOnSquare(int pos) {
     int clickedPieceIndex = state.pieceIndexByPos(pos);
-    if (selectedPiece.get().isPresent()) {
-      Piece piece = selectedPiece.get().get();
+    if (selectedPieceId.get() >= 0) {
+      Piece piece = state.pieceById(selectedPieceId.get());
       if (piece.pos == pos) {
         // Clicked on already selected piece -> deselect
-        selectedPiece.update(Optional.empty());
+        selectedPieceId.update(-1);
       } else {
         // Clicked on destination, try to move
         if (state.tryMoveSelectedPiece(piece, pos)) {
-          selectedPiece.update(Optional.empty());
+          selectedPieceId.update(-1);
         }
       }
     } else {
       if (clickedPieceIndex >= 0) {
         // Select piece
-        selectedPiece.update(Optional.of(state.pieces.get(clickedPieceIndex)));
+        selectedPieceId.update(state.pieces.get(clickedPieceIndex).id);
       } else {
         // Clicked on no piece while no piece is selected -> ignore
       }
