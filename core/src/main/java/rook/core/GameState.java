@@ -185,7 +185,7 @@ public class GameState {
       Direction dir = Direction.fromVector(destX - posX, destY - posY);
       ImmutableList<PiecePushedEvent> pushedEvents = calcPushList(destX, destY, dir, ImmutableList.builder()).build();
       Piece newPiece = piece.copy().pos(dest).build();
-      PieceMovedEvent movedEvent = new PieceMovedEvent(newPiece, piece.pos, pushedEvents);
+      PieceMovedEvent movedEvent = new PieceMovedEvent(newPiece, piece.pos, pushedEvents, Optional.empty());
       applyPieceMovedEvent(movedEvent);
       pieceMoved.emit(movedEvent);
       moveEnemyPieces();
@@ -196,6 +196,7 @@ public class GameState {
   }
 
   private void applyPieceMovedEvent(PieceMovedEvent movedEvent) {
+    movedEvent.capture.ifPresent(piece -> pieces.remove(pieceIndexById(piece.id)));
     movedEvent.pushedEvents.forEach(e -> {
       if (!contains(dim, e.piece.pos)) {
         pieces.remove(pieceIndexById(e.piece.id));
@@ -229,14 +230,11 @@ public class GameState {
       int dest = intention.calcDest(this).get();
       if (piece.pos != dest) {
         int pieceAtDestIndex = pieceIndexByPos(dest);
-        if (pieceAtDestIndex >= 0) {
-          pieces.remove(pieceAtDestIndex);
-        }
+        Optional<Piece> capture = pieceAtDestIndex >= 0 ? Optional.of(pieces.get(pieceAtDestIndex)) : Optional.empty();
         Piece newPiece = piece.copy().pos(dest).build();
-        // pieces index may have changed in the meantime
-        int pieceIndex2 = pieceIndexById(intention.pieceId);
-        pieces.set(pieceIndex2, newPiece);
-        pieceMoved.emit(new PieceMovedEvent(newPiece, piece.pos, ImmutableList.of()));
+        PieceMovedEvent movedEvent = new PieceMovedEvent(newPiece, piece.pos, ImmutableList.of(), capture);
+        applyPieceMovedEvent(movedEvent);
+        pieceMoved.emit(movedEvent);
       }
     });
 
@@ -284,11 +282,13 @@ class PieceMovedEvent {
   public final Piece piece;
   public final int oldPos;
   public final ImmutableList<PiecePushedEvent> pushedEvents;
+  public final Optional<Piece> capture;
 
-  PieceMovedEvent(Piece piece, int oldPos, ImmutableList<PiecePushedEvent> pushedEvents) {
+  PieceMovedEvent(Piece piece, int oldPos, ImmutableList<PiecePushedEvent> pushedEvents, Optional<Piece> capture) {
     this.piece = piece;
     this.oldPos = oldPos;
     this.pushedEvents = pushedEvents;
+    this.capture = capture;
   }
 }
 
