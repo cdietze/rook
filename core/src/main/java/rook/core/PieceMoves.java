@@ -58,6 +58,7 @@ public class PieceMoves {
   private static BitSet slide(IDimension dim, int x, int y, Direction dir, BitSet occupied, BitSet captures, BitSet result) {
     for (int i = 1; contains(dim, x + i * dir.x(), y + i * dir.y()); i++) {
       int p = toIndex(dim, x + i * dir.x(), y + i * dir.y());
+      // FIXME: this allows to capture a piece on an unrevealed square
       if (captures.get(p)) {
         result.set(p);
         break;

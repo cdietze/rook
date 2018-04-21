@@ -215,18 +215,20 @@ public class GameState {
     // Execute planned intentions
     moveIntentions.forEach((intention) -> {
       int pieceIndex = pieceIndexById(intention.pieceId);
+      if (pieceIndex < 0) return;
       Piece piece = pieces.get(pieceIndex);
-      int dest = intention.dest.get();
+      int dest = intention.calcDest(this).get();
       if (piece.pos != dest) {
         int pieceAtDestIndex = pieceIndexByPos(dest);
         if (pieceAtDestIndex >= 0) {
           pieces.remove(pieceAtDestIndex);
         }
         Piece newPiece = piece.copy().pos(dest).build();
-        pieces.set(pieceIndex, newPiece);
+        // pieces index may have changed in the meantime
+        int pieceIndex2 = pieceIndexById(intention.pieceId);
+        pieces.set(pieceIndex2, newPiece);
         pieceMoved.emit(newPiece);
       }
-      intention.close();
     });
 
     // Make intentions for next move
@@ -242,7 +244,7 @@ public class GameState {
         int vecY = destY - y;
         int moveLength = Math.max(Math.abs(vecX), Math.abs(vecY));
         Direction dir = Direction.fromVector(destX - x, destY - y);
-        moveIntentions.add(new MoveIntention(this, piece.id, dir, moveLength));
+        moveIntentions.add(new MoveIntention(piece.id, dir, moveLength));
       }
     });
     log.debug("Made intentions for next move: " + moveIntentions);
