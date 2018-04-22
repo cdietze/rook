@@ -115,30 +115,30 @@ public class GameState {
     });
   }
 
-  public final ValueView<BitSet> occupiedSquaresForPlayer;
+  public final ValueView<BitSet> blockedSquaresForPlayer;
 
   {
     Value<BitSet> result = Value.create(new BitSet());
     fogSquares.connect(new RSet.Listener<Integer>() {
       @Override
       public void onAdd(Integer elem) {
-        result.update(calcOccupiedSquaresForPlayer(new BitSet()));
+        result.update(calcBlockedSquaresForPlayer(new BitSet()));
       }
       @Override
       public void onRemove(Integer elem) {
-        result.update(calcOccupiedSquaresForPlayer(new BitSet()));
+        result.update(calcBlockedSquaresForPlayer(new BitSet()));
       }
     });
-    playerPieceSquares.connect(x -> result.update(calcOccupiedSquaresForPlayer(new BitSet())));
-    enemyPieceSquares.connect(x -> result.update(calcOccupiedSquaresForPlayer(new BitSet())));
-    result.update(calcOccupiedSquaresForPlayer(new BitSet()));
-    occupiedSquaresForPlayer = result;
+    playerPieceSquares.connect(x -> result.update(calcBlockedSquaresForPlayer(new BitSet())));
+    enemyPieceSquares.connect(x -> result.update(calcBlockedSquaresForPlayer(new BitSet())));
+    result.update(calcBlockedSquaresForPlayer(new BitSet()));
+    blockedSquaresForPlayer = result;
   }
 
-  private BitSet calcOccupiedSquaresForPlayer(BitSet result) {
+  private BitSet calcBlockedSquaresForPlayer(BitSet result) {
     fogSquares.forEach(result::set);
     result.or(playerPieceSquares.get());
-    // System.out.println("calcOccupiedSquaresForPlayer, result:" + result + ", fog: " + fogSquares + ", playerPieceSquares:" + playerPieceSquares.get() + ", enemyPieceSquares:" + enemyPieceSquares.get());
+    // System.out.println("calcBlockedSquaresForPlayer, result:" + result + ", fog: " + fogSquares + ", playerPieceSquares:" + playerPieceSquares.get() + ", enemyPieceSquares:" + enemyPieceSquares.get());
     return result;
   }
 
@@ -155,7 +155,7 @@ public class GameState {
   /**
    * Enemies are blocked by nothing
    */
-  public final ValueView<BitSet> occupiedSquaresForEnemy = Value.create(new BitSet());
+  public final ValueView<BitSet> blockedSquaresForEnemy = Value.create(new BitSet());
 
   private BitSet calcPieceSquares(BitSet result) {
     result.or(playerPieceSquares.get());
@@ -177,7 +177,7 @@ public class GameState {
   }
 
   public boolean tryMoveSelectedPiece(Piece piece, int dest) {
-    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos, occupiedSquaresForPlayer.get(), pieceSquares.get(), new BitSet());
+    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos, blockedSquaresForPlayer.get(), pieceSquares.get(), new BitSet());
     if (moves.get(dest)) {
       int pieceIndex = pieces.indexOf(piece);
       checkState(pieceIndex >= 0);
@@ -261,7 +261,7 @@ public class GameState {
   }
 
   private OptionalInt pickEnemyMove(Piece piece) {
-    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos, occupiedSquaresForEnemy.get(), playerPieceSquares.get(), new BitSet());
+    BitSet moves = PieceMoves.moves(dim, piece.type, piece.pos, blockedSquaresForEnemy.get(), playerPieceSquares.get(), new BitSet());
     OptionalInt playerKing = BitSetUtils.findFirst(moves, i -> {
       Optional<Piece> t = pieceAtPos(i);
       return t.isPresent() && t.get().side == Piece.Side.PLAYER && t.get().type == Piece.Type.KING;

@@ -25,7 +25,7 @@ public class MoveIntention {
     int pieceIndex = state.pieceIndexById(pieceId);
     if (pieceIndex < 0) return Optional.empty();
     Piece piece = state.pieces.get(pieceIndex);
-    int result = PieceMoves.slideInDir(state.dim, piece.pos, dir, state.occupiedSquaresForEnemy.get(), opponent, moveLength);
+    int result = PieceMoves.slideInDir(state.dim, piece.pos, dir, state.blockedSquaresForEnemy.get(), opponent, moveLength);
     // System.out.println("MoveIntention#calcDest, result:" + result + ", this:" + this);
     return Optional.ofNullable(result);
   }
