@@ -1,4 +1,6 @@
 
+[![Build Status](https://travis-ci.org/cdietze/rook.svg?branch=master)](https://travis-ci.org/cdietze/rook)
+
 [Play it in your browser now!](http://cdietze.github.io/rook/)
 
 ## Build
