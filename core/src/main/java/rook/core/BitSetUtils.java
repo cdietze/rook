@@ -11,6 +11,17 @@ import java.util.function.Predicate;
  */
 interface BitSetUtils {
 
+  static BitSet newBitSet(int... values) {
+    return set(new BitSet(), values);
+  }
+
+  static BitSet set(BitSet result, int... values) {
+    for (int value : values) {
+      result.set(value);
+    }
+    return result;
+  }
+
   static OptionalInt randomElement(Random random, BitSet bitSet) {
     int cardinality = bitSet.cardinality();
     if (cardinality == 0) return OptionalInt.empty();

@@ -138,7 +138,6 @@ public class GameState {
   private BitSet calcOccupiedSquaresForPlayer(BitSet result) {
     fogSquares.forEach(result::set);
     result.or(playerPieceSquares.get());
-    result.or(enemyPieceSquares.get());
     // System.out.println("calcOccupiedSquaresForPlayer, result:" + result + ", fog: " + fogSquares + ", playerPieceSquares:" + playerPieceSquares.get() + ", enemyPieceSquares:" + enemyPieceSquares.get());
     return result;
   }
