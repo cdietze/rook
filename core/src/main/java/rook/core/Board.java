@@ -13,6 +13,7 @@ import playn.scene.Pointer;
 import react.RList;
 import react.RSet;
 import react.Value;
+import tripleplay.anim.Animator;
 import tripleplay.util.Colors;
 import tripleplay.util.Layers;
 
@@ -40,10 +41,16 @@ public class Board {
 
   private final Value<Integer> selectedPieceId = Value.create(-1);
 
+  /**
+   * Use a separate animator so that we can use barriers to queue progress
+   */
+  private final Animator moveAnim = new Animator();
+
   public Board(final BoardScreen screen) {
     this.screen = screen;
     this.plat = screen.plat;
     this.state = screen.state;
+    screen.iface.frame.connect(moveAnim.onPaint);
     rootLayer.setName("board");
     rootLayer.setSize(state.dim.width(), state.dim.height());
     rootLayer.setOrigin(Layer.Origin.CENTER);
@@ -89,16 +96,21 @@ public class Board {
   }
 
   private void initMovePieceListener() {
-    // TODO: use more pretty animations
-    // TODO: queue animations up: animate events one after another
     state.pieceMoved.connect(e -> {
       plat.log().debug("Handling PieceMovedEvent", "event", e);
       // Handle capture
       e.capture.ifPresent(piece -> {
         Layer l = pieceLayers.remove(piece.id);
-        screen.iface.anim.tweenAlpha(l).to(0f).then().dispose(l);
-        screen.iface.anim.tweenScale(l).to(3f);
+        moveAnim.tweenAlpha(l).to(0f).then().dispose(l);
+        moveAnim.tweenScale(l).to(3f);
       });
+      // Handle move
+      {
+        int x = toX(state.dim, e.piece.pos);
+        int y = toY(state.dim, e.piece.pos);
+        moveAnim.tweenTranslation(pieceLayers.get(e.piece.id)).to(x + .5f, y + .5f).in(200).easeInOut();
+        moveAnim.addBarrier();
+      }
       // Handle pushes
       e.pushedEvents.forEach(push -> {
         if (!contains(state.dim, push.piece.pos)) {
@@ -106,14 +118,11 @@ public class Board {
         } else {
           int x = toX(state.dim, push.piece.pos);
           int y = toY(state.dim, push.piece.pos);
-          screen.iface.anim.tweenTranslation(
+          moveAnim.tweenTranslation(
                   pieceLayers.get(push.piece.id)).to(x + .5f, y + .5f).in(200).easeInOut();
+          moveAnim.addBarrier();
         }
       });
-      // Handle move
-      int x = toX(state.dim, e.piece.pos);
-      int y = toY(state.dim, e.piece.pos);
-      screen.iface.anim.tweenTranslation(pieceLayers.get(e.piece.id)).to(x + .5f, y + .5f).in(200).easeInOut();
     });
   }
 
@@ -141,13 +150,15 @@ public class Board {
             surf.setFillColor(Colors.darker(Colors.RED))
                     .drawLine(posX + .5f, posY + .5f, destX + .5f, destY + .5f, 0.1f);
           }
-        }.setDepth(Depths.INTENTIONS);
+        }.setDepth(Depths.INTENTIONS)
+                .setVisible(false);
         intentionLayers.add(intentionLayer);
         rootLayer.add(intentionLayer);
+        moveAnim.setVisible(intentionLayer, true);
       }
       @Override
       public void onRemove(int index, MoveIntention intention) {
-        intentionLayers.remove(index).close();
+        moveAnim.dispose(intentionLayers.remove(index));
       }
     });
   }
@@ -182,7 +193,8 @@ public class Board {
       }
       @Override
       public void onRemove(Integer pos) {
-        fogLayers.get(pos).close();
+        Layer layer = fogLayers.get(pos);
+        moveAnim.tweenAlpha(layer).to(0f).in(500f).easeOut().then().dispose(layer);
         fogLayers.set(pos, null);
       }
     });
