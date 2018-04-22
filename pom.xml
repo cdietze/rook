@@ -55,6 +55,7 @@
     </profile>
     <profile>
       <id>html</id>
+      <activation><activeByDefault>true</activeByDefault></activation>
       <modules><module>html</module></modules>
     </profile>
   </profiles>
