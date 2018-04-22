@@ -71,10 +71,10 @@ public class GameState {
    */
   public final RList<MoveIntention> moveIntentions = RList.create();
 
-  public GameState(Random random, Log log) {
+  public GameState(Random random, Log log, boolean fog) {
     this.random = random;
     this.log = log;
-    fogSquares.addAll(IntStream.range(0, dim.width() * dim.height()).boxed().collect(Collectors.toList()));
+    if (fog) fogSquares.addAll(IntStream.range(0, dim.width() * dim.height()).boxed().collect(Collectors.toList()));
     initRevealFogListener();
     initUpdatePiecesBitSetsListener();
   }
@@ -137,7 +137,6 @@ public class GameState {
 
   private BitSet calcBlockedSquaresForPlayer(BitSet result) {
     fogSquares.forEach(result::set);
-    result.or(playerPieceSquares.get());
     // System.out.println("calcBlockedSquaresForPlayer, result:" + result + ", fog: " + fogSquares + ", playerPieceSquares:" + playerPieceSquares.get() + ", enemyPieceSquares:" + enemyPieceSquares.get());
     return result;
   }
