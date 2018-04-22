@@ -27,9 +27,7 @@ public class PieceMoves {
 
   public static BitSet kingMoves(IDimension dim, int pos, BitSet occupied, BitSet captures, BitSet result) {
     PointUtils.borderingNeighbors(dim, pos, result);
-    BitSet blocked = (BitSet) occupied.clone();
-    blocked.andNot(captures);
-    result.andNot(blocked);
+    result.andNot(occupied);
     return result;
   }
 
@@ -58,12 +56,11 @@ public class PieceMoves {
   private static BitSet slide(IDimension dim, int x, int y, Direction dir, BitSet occupied, BitSet captures, BitSet result) {
     for (int i = 1; contains(dim, x + i * dir.x(), y + i * dir.y()); i++) {
       int p = toIndex(dim, x + i * dir.x(), y + i * dir.y());
-      // FIXME: this allows to capture a piece on an unrevealed square
+      if (occupied.get(p)) break;
       if (captures.get(p)) {
         result.set(p);
         break;
       }
-      if (occupied.get(p)) break;
       result.set(p);
     }
     return result;
@@ -79,8 +76,8 @@ public class PieceMoves {
     int posY = toY(dim, pos);
     for (int i = 1; i <= moveLength && contains(dim, posX + i * dir.x(), posY + i * dir.y()); i++) {
       int p = toIndex(dim, posX + i * dir.x(), posY + i * dir.y());
-      if (captures.get(p)) return p;
       if (occupied.get(p)) return curPos;
+      if (captures.get(p)) return p;
       else curPos = p;
     }
     return curPos;
