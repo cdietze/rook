@@ -146,18 +146,21 @@ public class GameState {
 
   {
     Value<BitSet> result = Value.create(new BitSet());
-    playerPieceSquares.connect(x -> result.update(calcOccupiedSquaresForEnemy(new BitSet())));
-    enemyPieceSquares.connect(x -> result.update(calcOccupiedSquaresForEnemy(new BitSet())));
-    result.update(calcOccupiedSquaresForEnemy(new BitSet()));
+    playerPieceSquares.connect(x -> result.update(calcPieceSquares(new BitSet())));
+    enemyPieceSquares.connect(x -> result.update(calcPieceSquares(new BitSet())));
+    result.update(calcPieceSquares(new BitSet()));
     pieceSquares = result;
   }
 
-  public final ValueView<BitSet> occupiedSquaresForEnemy = pieceSquares;
+  /**
+   * Enemies are blocked by nothing
+   */
+  public final ValueView<BitSet> occupiedSquaresForEnemy = Value.create(new BitSet());
 
-  private BitSet calcOccupiedSquaresForEnemy(BitSet result) {
+  private BitSet calcPieceSquares(BitSet result) {
     result.or(playerPieceSquares.get());
     result.or(enemyPieceSquares.get());
-    // System.out.println("calcOccupiedSquaresForEnemy, result:" + result + ", playerPieceSquares:" + playerPieceSquares.get() + ", enemyPieceSquares:" + enemyPieceSquares.get());
+    // System.out.println("calcPieceSquares, result:" + result + ", playerPieceSquares:" + playerPieceSquares.get() + ", enemyPieceSquares:" + enemyPieceSquares.get());
     return result;
   }
 
