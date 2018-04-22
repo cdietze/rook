@@ -36,7 +36,13 @@ public class MainGame extends SceneGame {
     // Register Pointer so we can handle any pointer input (clicks, mouse/touch events etc.)
     new Pointer(plat, rootLayer, true);
 
-    GameState gameState = new GameState(new Random(), plat.log());
+    GameState gameState = setupState1();
+//    GameState gameState = setupState2();
+    screens.push(new BoardScreen(this, gameState));
+  }
+
+  private GameState setupState1() {
+    GameState gameState = new GameState(new Random(), plat.log(), false);
     gameState.pieces.add(new Piece(PLAYER, KING, 0));
     gameState.pieces.add(new Piece(PLAYER, BISHOP, 1));
     gameState.pieces.add(new Piece(PLAYER, BISHOP, 2));
@@ -45,6 +51,29 @@ public class MainGame extends SceneGame {
 
     gameState.pieces.add(new Piece(ENEMY, ROOK, 4));
     gameState.pieces.add(new Piece(ENEMY, BISHOP, 12));
-    screens.push(new BoardScreen(this, gameState));
+    return gameState;
+  }
+
+  private GameState setupState2() {
+    GameState gameState = new GameState(new Random(), plat.log(), false);
+    gameState.pieces.add(new Piece(PLAYER, KING, 0));
+    gameState.pieces.add(new Piece(PLAYER, BISHOP, 1));
+    gameState.pieces.add(new Piece(PLAYER, BISHOP, 9));
+    gameState.pieces.add(new Piece(PLAYER, ROOK, 8));
+
+    gameState.pieces.add(new Piece(ENEMY, BISHOP, 7));
+    gameState.pieces.add(new Piece(ENEMY, BISHOP, 15));
+    gameState.pieces.add(new Piece(ENEMY, BISHOP, 23));
+    gameState.pieces.add(new Piece(ENEMY, BISHOP, 31));
+    gameState.pieces.add(new Piece(ENEMY, ROOK, 39));
+    gameState.pieces.add(new Piece(ENEMY, ROOK, 47));
+
+    gameState.pieces.add(new Piece(ENEMY, BISHOP, 56));
+    gameState.pieces.add(new Piece(ENEMY, BISHOP, 57));
+    gameState.pieces.add(new Piece(ENEMY, BISHOP, 58));
+    gameState.pieces.add(new Piece(ENEMY, BISHOP, 59));
+    gameState.pieces.add(new Piece(ENEMY, ROOK, 60));
+    gameState.pieces.add(new Piece(ENEMY, ROOK, 61));
+    return gameState;
   }
 }
