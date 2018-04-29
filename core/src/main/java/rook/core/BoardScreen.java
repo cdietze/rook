@@ -25,7 +25,7 @@ public class BoardScreen extends Screen {
     Root root = iface.createRoot(new BorderLayout(), UiUtils.newSheet(plat.graphics()), layer);
     root.setSize(plat.graphics().viewSize);
     Board board = new Board(this);
-    float margin = 10f;
+    float margin = 40f;
     ScaledElement scaledElement = new ScaledElement(board.rootLayer);
     scaledElement.addStyles(Style.BACKGROUND.is(Background.solid(Colors.BLACK).inset(margin)));
     root.add(scaledElement.setConstraint(BorderLayout.CENTER));
