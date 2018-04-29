@@ -19,7 +19,8 @@ import tripleplay.util.Layers;
 
 import java.util.*;
 
-import static de.cdietze.playn_util.PointUtils.*;
+import static de.cdietze.playn_util.PointUtils.toX;
+import static de.cdietze.playn_util.PointUtils.toY;
 
 public class Board {
   interface Depths {
@@ -46,10 +47,13 @@ public class Board {
    */
   private final Animator moveAnim = new Animator();
 
+  private final Animator fxAnim;
+
   public Board(final BoardScreen screen) {
     this.screen = screen;
     this.plat = screen.plat;
     this.state = screen.state;
+    this.fxAnim = screen.iface.anim;
     screen.iface.frame.connect(moveAnim.onPaint);
     rootLayer.setName("board");
     rootLayer.setSize(state.dim.width(), state.dim.height());
@@ -112,14 +116,21 @@ public class Board {
         moveAnim.addBarrier();
       }
       // Handle pushes
-      e.pushedEvents.forEach(push -> {
-        if (!contains(state.dim, push.piece.pos)) {
-          pieceLayers.remove(push.piece.id).close();
-        } else {
-          int x = toX(state.dim, push.piece.pos);
-          int y = toY(state.dim, push.piece.pos);
+      e.consequences.forEach(c -> {
+        if (c instanceof PiecePushedEvent) {
+          PiecePushedEvent push = (PiecePushedEvent) c;
+          int x = push.destX(state.dim);
+          int y = push.destY(state.dim);
           moveAnim.tweenTranslation(
                   pieceLayers.get(push.piece.id)).to(x + .5f, y + .5f).in(200).easeInOut();
+          moveAnim.addBarrier();
+        } else if (c instanceof PiecePushedOverBoard) {
+          PiecePushedOverBoard push = (PiecePushedOverBoard) c;
+          int x = push.destX(state.dim);
+          int y = push.destY(state.dim);
+          Layer l = pieceLayers.remove(push.piece.id);
+          moveAnim.tweenTranslation(l).to(x + .5f, y + .5f).in(200).easeInOut()
+                  .then().tweenScale(l).to(0f).in(200).easeIn().then().dispose(l);
           moveAnim.addBarrier();
         }
       });
@@ -209,7 +220,7 @@ public class Board {
         plat.log().debug("onStart", "iact", iact, "screen", new pythagoras.f.Point(iact), "local", iact.local, "pos", pos);
         if (pos < 0) return;
         Layer squareLayer = squareLayers.get(pos);
-        screen.iface.anim.tweenAlpha(squareLayer).from(.5f).to(1f).in(500);
+        fxAnim.tweenAlpha(squareLayer).from(.5f).to(1f).in(500);
         clickOnSquare(pos);
       }
 
