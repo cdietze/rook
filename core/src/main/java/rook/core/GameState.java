@@ -185,7 +185,7 @@ public class GameState {
       int destX = toX(dim, dest);
       int destY = toY(dim, dest);
       Direction dir = Direction.fromVector(destX - posX, destY - posY);
-      ImmutableList<PiecePushedEvent> pushedEvents = calcPushList(destX, destY, dir, ImmutableList.builder()).build();
+      ImmutableList<ConsequenceEvent> pushedEvents = calcPushList(destX, destY, dir, ImmutableList.builder()).build();
       Piece newPiece = piece.copy().pos(dest).build();
       PieceMovedEvent movedEvent = new PieceMovedEvent(newPiece, piece.pos, pushedEvents, Optional.empty());
       applyPieceMovedEvent(movedEvent);
@@ -199,25 +199,29 @@ public class GameState {
 
   private void applyPieceMovedEvent(PieceMovedEvent movedEvent) {
     movedEvent.capture.ifPresent(piece -> pieces.remove(pieceIndexById(piece.id)));
-    movedEvent.pushedEvents.forEach(e -> {
-      if (!contains(dim, e.piece.pos)) {
-        pieces.remove(pieceIndexById(e.piece.id));
-      } else {
-        pieces.set(pieceIndexById(e.piece.id), e.piece);
+    movedEvent.consequences.forEach(e -> {
+      if (e instanceof PiecePushedEvent) {
+        PiecePushedEvent e2 = (PiecePushedEvent) e;
+        Piece pushedPiece = e2.piece.copy().pos(e2.destIndex(dim)).build();
+        pieces.set(pieceIndexById(e2.piece.id), pushedPiece);
+      } else if (e instanceof PiecePushedOverBoard) {
+        PiecePushedOverBoard e2 = (PiecePushedOverBoard) e;
+        pieces.remove(pieceIndexById(e2.piece.id));
       }
     });
     pieces.set(pieceIndexById(movedEvent.piece.id), movedEvent.piece);
   }
 
-  private ImmutableList.Builder<PiecePushedEvent> calcPushList(int pushedX, int pushedY, Direction dir, ImmutableList.Builder<PiecePushedEvent> result) {
+  private ImmutableList.Builder<ConsequenceEvent> calcPushList(int pushedX, int pushedY, Direction dir, ImmutableList.Builder<ConsequenceEvent> result) {
     if (!contains(dim, pushedX, pushedY)) return result;
     int pushedPos = toIndex(dim, pushedX, pushedY);
     Optional<Piece> piece = pieceAtPos(pushedPos);
     if (!piece.isPresent()) return result;
     int destX = pushedX + dir.x();
     int destY = pushedY + dir.y();
-    Piece pushedPiece = piece.get().copy().pos(toIndex(dim, destX, destY)).build();
-    result.add(new PiecePushedEvent(pushedPiece, pushedPos));
+    result.add(contains(dim, destX, destY)
+            ? new PiecePushedEvent(piece.get(), dir, pushedPos)
+            : new PiecePushedOverBoard(piece.get(), dir));
     // The pushed may become the pusher
     calcPushList(destX, destY, dir, result);
     return result;
@@ -284,12 +288,12 @@ class PieceMovedEvent {
   public final Piece piece;
   public final int oldPos;
   public final Optional<Piece> capture;
-  public final ImmutableList<PiecePushedEvent> pushedEvents;
+  public final ImmutableList<ConsequenceEvent> consequences;
 
-  PieceMovedEvent(Piece piece, int oldPos, ImmutableList<PiecePushedEvent> pushedEvents, Optional<Piece> capture) {
+  PieceMovedEvent(Piece piece, int oldPos, ImmutableList<ConsequenceEvent> consequences, Optional<Piece> capture) {
     this.piece = piece;
     this.oldPos = oldPos;
-    this.pushedEvents = pushedEvents;
+    this.consequences = consequences;
     this.capture = capture;
   }
 
@@ -299,28 +303,63 @@ class PieceMovedEvent {
             .add("piece", piece)
             .add("oldPos", oldPos)
             .add("capture", capture)
-            .add("pushedEvents", pushedEvents)
+            .add("consequences", consequences)
             .toString();
   }
 }
 
 @Immutable
-class PiecePushedEvent {
+interface ConsequenceEvent {
+}
+
+@Immutable
+class PiecePushedEvent implements ConsequenceEvent {
   /**
-   * The piece after the push
+   * The piece before the push
    */
   public final Piece piece;
+  public final Direction dir;
   public final int oldPos;
-  public PiecePushedEvent(Piece piece, int oldPos) {
+  public PiecePushedEvent(Piece piece, Direction dir, int oldPos) {
     this.piece = piece;
+    this.dir = dir;
     this.oldPos = oldPos;
   }
+
+  public int destX(IDimension dim) { return toX(dim, piece.pos) + dir.x(); }
+  public int destY(IDimension dim) { return toY(dim, piece.pos) + dir.y(); }
+  public int destIndex(IDimension dim) { return piece.pos + dir.x() + dim.width() * dir.y(); }
 
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
             .add("piece", piece)
             .add("oldPos", oldPos)
+            .toString();
+  }
+}
+
+@Immutable
+class PiecePushedOverBoard implements ConsequenceEvent {
+  /**
+   * The piece before being pushed off the board
+   */
+  public final Piece piece;
+  public final Direction dir;
+
+  public PiecePushedOverBoard(Piece piece, Direction dir) {
+    this.piece = piece;
+    this.dir = dir;
+  }
+
+  public int destX(IDimension dim) { return toX(dim, piece.pos) + dir.x(); }
+  public int destY(IDimension dim) { return toY(dim, piece.pos) + dir.y(); }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+            .add("piece", piece)
+            .add("dir", dir)
             .toString();
   }
 }
