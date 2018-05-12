@@ -241,9 +241,10 @@ public class GameState {
         int destY = toY(dim, dest);
         Direction dir = Direction.fromVector(destX - posX, destY - posY);
         int pieceAtDestIndex = pieceIndexByPos(dest);
-        Optional<Piece> capture = (pieceAtDestIndex >= 0 && pieces.get(pieceAtDestIndex).side == Piece.Side.PLAYER)
-                ? Optional.of(pieces.get(pieceAtDestIndex))
-                : Optional.empty();
+//        Optional<Piece> capture = (pieceAtDestIndex >= 0 && pieces.get(pieceAtDestIndex).side == Piece.Side.PLAYER)
+//                ? Optional.of(pieces.get(pieceAtDestIndex))
+//                : Optional.empty();
+        Optional<Piece> capture = Optional.empty();
         ImmutableList<ConsequenceEvent> pushedEvents = capture.isPresent()
                 ? ImmutableList.of()
                 : calcPushList(destX, destY, dir, ImmutableList.builder()).build();
