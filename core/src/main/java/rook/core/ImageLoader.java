@@ -19,6 +19,7 @@ public class ImageLoader {
     public final Image whiteRook = plat.assets().getImage("images/cburnett/wR.png");
 
     public final Image blackBishop = plat.assets().getImage("images/cburnett/bB.png");
+    public final Image blackKing = plat.assets().getImage("images/cburnett/bK.png");
     public final Image blackRook = plat.assets().getImage("images/cburnett/bR.png");
 
     public final Image pieceImage(Piece.Side side, Piece.Type type) {
@@ -37,6 +38,8 @@ public class ImageLoader {
           switch (type) {
             case BISHOP:
               return blackBishop;
+            case KING:
+              return blackKing;
             case ROOK:
               return blackRook;
           }
