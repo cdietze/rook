@@ -44,13 +44,19 @@ public class MainGame extends SceneGame {
   private GameState setupState1() {
     GameState gameState = new GameState(new Random(), plat.log(), false);
     gameState.pieces.add(new Piece(PLAYER, KING, 0));
-    gameState.pieces.add(new Piece(PLAYER, BISHOP, 1));
-    gameState.pieces.add(new Piece(PLAYER, BISHOP, 2));
-    gameState.pieces.add(new Piece(PLAYER, BISHOP, 10));
-    gameState.pieces.add(new Piece(PLAYER, ROOK, 3));
+//    gameState.pieces.add(new Piece(PLAYER, BISHOP, 1));
+//    gameState.pieces.add(new Piece(PLAYER, BISHOP, 2));
+//    gameState.pieces.add(new Piece(PLAYER, BISHOP, 10));
+//    gameState.pieces.add(new Piece(PLAYER, ROOK, 3));
 
-    gameState.pieces.add(new Piece(ENEMY, ROOK, 4));
-    gameState.pieces.add(new Piece(ENEMY, BISHOP, 12));
+//    gameState.pieces.add(new Piece(ENEMY, ROOK, 4));
+//    gameState.pieces.add(new Piece(ENEMY, BISHOP, 12));
+    gameState.pieces.add(new Piece(ENEMY, KING, 63));
+    gameState.pieces.add(new Piece(ENEMY, KING, 62));
+    gameState.pieces.add(new Piece(ENEMY, KING, 55));
+    gameState.pieces.add(new Piece(ENEMY, KING, 54));
+    gameState.pieces.add(new Piece(ENEMY, KING, 47));
+    gameState.pieces.add(new Piece(ENEMY, KING, 61));
     return gameState;
   }
 
