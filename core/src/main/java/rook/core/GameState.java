@@ -235,10 +235,22 @@ public class GameState {
       Piece piece = pieces.get(pieceIndex);
       int dest = intention.calcDest(this).get();
       if (piece.pos != dest) {
+        int posX = toX(dim, piece.pos);
+        int posY = toY(dim, piece.pos);
+        int destX = toX(dim, dest);
+        int destY = toY(dim, dest);
+        Direction dir = Direction.fromVector(destX - posX, destY - posY);
         int pieceAtDestIndex = pieceIndexByPos(dest);
-        Optional<Piece> capture = pieceAtDestIndex >= 0 ? Optional.of(pieces.get(pieceAtDestIndex)) : Optional.empty();
-        Piece newPiece = piece.copy().pos(dest).build();
-        PieceMovedEvent movedEvent = new PieceMovedEvent(newPiece, piece.pos, ImmutableList.of(), capture);
+        Optional<Piece> capture = (pieceAtDestIndex >= 0 && pieces.get(pieceAtDestIndex).side == Piece.Side.PLAYER)
+                ? Optional.of(pieces.get(pieceAtDestIndex))
+                : Optional.empty();
+        ImmutableList<ConsequenceEvent> pushedEvents = capture.isPresent()
+                ? ImmutableList.of()
+                : calcPushList(destX, destY, dir, ImmutableList.builder()).build();
+        PieceMovedEvent movedEvent = new PieceMovedEvent(piece.copy().pos(dest).build(),
+                piece.pos,
+                pushedEvents,
+                capture);
         applyPieceMovedEvent(movedEvent);
         pieceMoved.emit(movedEvent);
       }
